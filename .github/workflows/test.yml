@@ -1,0 +1,29 @@
+name: test
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'next'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test-generated-files:
+    runs-on: ubuntu-latest
+
+    name: "Test generated files are up to date"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.15.7'
+
+      - name: Regenerate files
+        run: go generate ./...
+
+      - name: Check git diff
+        run: ./.github/commands/fail-on-git-diff.sh
