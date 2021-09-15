@@ -8,14 +8,14 @@ A CLI tool to inspect Matroska files. The tool is written in Go.
 
 ## Introduction
 
-`mkc` stands for "Matroska Command". The name of the command follows the logic of the extension naming used for Matroska files. The most used extensions are `mkv` "Matroska Video", `mka` "Matroska Audio", and `mks` "Matroska Subtitle". The goal with this tool is to see how one would use the libraries provided by [github.com/coding-socks/ebml](https://github.com/coding-socks/ebml).
+`mkc` stands for "Matroska Command". The name of the command follows the logic of the extension naming used for Matroska files. The most used extensions are `mkv` "Matroska Video", `mka` "Matroska Audio", and `mks` "Matroska Subtitle".
 
-It is based on the July 2020 version of [RFC 8794][rfc8794] (with additions from [github.com/ietf-wg-cellar/ebml-specification][ebml-specification]) and on the 7th iteration of [draft-ietf-cellar-matroska][draft-ietf-cellar-matroska-07]. None of these documents reached ["Internet Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.3) status yet.
+The library used by this command is based on the 7th iteration of [draft-ietf-cellar-matroska][draft-ietf-cellar-matroska-07]and the 6th iteration of [draft-ietf-cellar-codec][draft-ietf-cellar-codec-06]. None of these documents reached ["Internet Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.3) status yet.
 
-- RFC 8794 is in a ["Proposed Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.1) status.
 - draft-ietf-cellar-matroska is still an [Internet-Draft](https://tools.ietf.org/html/rfc2026#section-2.2).
+- draft-ietf-cellar-codec is still an [Internet-Draft](https://tools.ietf.org/html/rfc2026#section-2.2).
 
-The goal is to provide implementation for these documents and during the implementation provide feedback for them.
+The goal of this command line tool is to see how one would use the libraries provided by [github.com/coding-socks/matroska](https://github.com/coding-socks/matroska) and [github.com/coding-socks/ebml](https://github.com/coding-socks/ebml).
 
 ## Production readiness
 
@@ -42,19 +42,10 @@ Huge thanks to the [Matroska.org](https://www.matroska.org/) for their work.
 
 - [RFC 8794: Extensible Binary Meta Language][rfc8794]
 - [draft-ietf-cellar-matroska-07: Matroska Media Container Format Specifications][draft-ietf-cellar-matroska-07]
+- [draft-ietf-cellar-codec-06: Matroska Media Container Codec Specifications][draft-ietf-cellar-codec-06]
 
 Huge thanks to the [IETF CELLAR Working Group](https://datatracker.ietf.org/wg/cellar/charter/) for their work.
 
-## Inspiration
-
-Inspiration for the implementation comes from the following places:
-
-- https://pkg.go.dev/database/sql#Drivers
-- https://pkg.go.dev/database/sql#Register
-- https://pkg.go.dev/encoding/json#Decoder
-- https://pkg.go.dev/golang.org/x/image/vp8#Decoder
-
 [rfc8794]: https://tools.ietf.org/html/rfc8794
 [draft-ietf-cellar-matroska-07]: https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-07.html
-[ebml-specification]: https://github.com/ietf-wg-cellar/ebml-specification
-
+[draft-ietf-cellar-codec-06]: https://www.ietf.org/archive/id/draft-ietf-cellar-codec-06.html
