@@ -49,38 +49,34 @@ func gen(w io.Writer) {
 		Type: schema.TypeMaster,
 		Name: "Document",
 	})
-	for _, fp := range []string{filepath.Join("..", "ebml.xml"), filepath.Join(".", "ebml_matroska.xml")} {
-		var s schema.Schema
-		func() {
-			f, err := os.Open(fp)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer f.Close()
-			if err := xml.NewDecoder(f).Decode(&s); err != nil {
-				log.Fatal(err)
-			}
-		}()
-		for _, el := range s.Elements {
-			if el.Path == `\(-\)Void` || el.Path == `\(1-\)CRC-32` {
-				continue
-			}
-			if strings.HasPrefix(el.Path, `\EBML`) {
-				continue
-			}
-			p := strings.Split(el.Path, `\`)[1:]
-			branch := root
-			lastIndex := len(p) - 1
-			for _, s := range p[:lastIndex] {
-				node := branch.Get(s)
-				if node == nil {
-					node = schema.NewTreeNode(el)
-					branch.Put(s, node)
-				}
-				branch = node
-			}
-			branch.Put(p[lastIndex], schema.NewTreeNode(el))
+	fp := filepath.Join(".", "ebml_matroska.xml")
+	var s schema.Schema
+	func() {
+		f, err := os.Open(fp)
+		if err != nil {
+			log.Fatal(err)
 		}
+		defer f.Close()
+		if err := xml.NewDecoder(f).Decode(&s); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	for _, el := range s.Elements {
+		if strings.HasPrefix(el.Path, `\EBML`) {
+			continue
+		}
+		p := strings.Split(el.Path, `\`)[1:]
+		branch := root
+		lastIndex := len(p) - 1
+		for _, s := range p[:lastIndex] {
+			node := branch.Get(s)
+			if node == nil {
+				node = schema.NewTreeNode(el)
+				branch.Put(s, node)
+			}
+			branch = node
+		}
+		branch.Put(p[lastIndex], schema.NewTreeNode(el))
 	}
 	fmt.Fprint(w, "//go:embed ebml_matroska.xml\n")
 	fmt.Fprint(w, "var docType []byte\n")
