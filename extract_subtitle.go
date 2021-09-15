@@ -29,7 +29,7 @@ func extractSRT(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
 			}
 		}
 		for i := range c.BlockGroup {
-			block, err := NewBlock(c.BlockGroup[i].Block, c.Timestamp, scale, time.Duration(c.BlockGroup[i].BlockDuration), BlockTypeBlock)
+			block, err := NewBlock(c.BlockGroup[i].Block, c.Timestamp, scale, time.Duration(*c.BlockGroup[i].BlockDuration), BlockTypeBlock)
 			if err != nil {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
@@ -73,7 +73,7 @@ func subRipTime(d time.Duration) string {
 }
 
 func extractSSA(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
-	if _, err := w.Write(t.CodecPrivate); err != nil {
+	if _, err := w.Write(*t.CodecPrivate); err != nil {
 		return err
 	}
 
@@ -95,7 +95,7 @@ func extractSSA(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
 			}
 		}
 		for i := range c.BlockGroup {
-			block, err := NewBlock(c.BlockGroup[i].Block, c.Timestamp, scale, time.Duration(c.BlockGroup[i].BlockDuration), BlockTypeBlock)
+			block, err := NewBlock(c.BlockGroup[i].Block, c.Timestamp, scale, time.Duration(*c.BlockGroup[i].BlockDuration), BlockTypeBlock)
 			if err != nil {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
@@ -104,7 +104,7 @@ func extractSSA(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
 			}
 		}
 	}
-	f := subStationAlphaFormat(t.CodecPrivate)
+	f := subStationAlphaFormat(*t.CodecPrivate)
 	orderedEvents := make([]strings.Builder, len(blocks))
 	for _, block := range blocks {
 		start := block.Timestamp

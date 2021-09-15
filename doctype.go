@@ -271,10 +271,10 @@ type Segment struct {
 	SeekHead    []SeekHead
 	Info        Info
 	Cluster     []Cluster
-	Tracks      Tracks
-	Cues        Cues
-	Attachments Attachments
-	Chapters    Chapters
+	Tracks      *Tracks
+	Cues        *Cues
+	Attachments *Attachments
+	Chapters    *Chapters
 	Tags        []Tags
 }
 
@@ -288,18 +288,18 @@ type Seek struct {
 }
 
 type Info struct {
-	SegmentUID       []byte
-	SegmentFilename  string
-	PrevUID          []byte
-	PrevFilename     string
-	NextUID          []byte
-	NextFilename     string
+	SegmentUID       *[]byte
+	SegmentFilename  *string
+	PrevUID          *[]byte
+	PrevFilename     *string
+	NextUID          *[]byte
+	NextFilename     *string
 	SegmentFamily    [][]byte
 	ChapterTranslate []ChapterTranslate
 	TimestampScale   time.Duration
-	Duration         float64
-	DateUTC          time.Time
-	Title            string
+	Duration         *float64
+	DateUTC          *time.Time
+	Title            *string
 	MuxingApp        string
 	WritingApp       string
 }
@@ -312,9 +312,9 @@ type ChapterTranslate struct {
 
 type Cluster struct {
 	Timestamp      time.Duration
-	SilentTracks   SilentTracks
-	Position       uint
-	PrevSize       uint
+	SilentTracks   *SilentTracks
+	Position       *uint
+	PrevSize       *uint
 	SimpleBlock    [][]byte
 	BlockGroup     []BlockGroup
 	EncryptedBlock [][]byte
@@ -326,16 +326,16 @@ type SilentTracks struct {
 
 type BlockGroup struct {
 	Block             []byte
-	BlockVirtual      []byte
-	BlockAdditions    BlockAdditions
-	BlockDuration     uint
+	BlockVirtual      *[]byte
+	BlockAdditions    *BlockAdditions
+	BlockDuration     *uint
 	ReferencePriority uint
 	ReferenceBlock    []int
-	ReferenceVirtual  int
-	CodecState        []byte
-	DiscardPadding    int
-	Slices            Slices
-	ReferenceFrame    ReferenceFrame
+	ReferenceVirtual  *int
+	CodecState        *[]byte
+	DiscardPadding    *int
+	Slices            *Slices
+	ReferenceFrame    *ReferenceFrame
 }
 
 type BlockAdditions struct {
@@ -352,7 +352,7 @@ type Slices struct {
 }
 
 type TimeSlice struct {
-	LaceNumber      uint
+	LaceNumber      *uint
 	FrameNumber     uint
 	BlockAdditionID uint
 	Delay           uint
@@ -375,51 +375,51 @@ type TrackEntry struct {
 	FlagEnabled                 uint
 	FlagDefault                 uint
 	FlagForced                  uint
-	FlagHearingImpaired         uint
-	FlagVisualImpaired          uint
-	FlagTextDescriptions        uint
-	FlagOriginal                uint
-	FlagCommentary              uint
+	FlagHearingImpaired         *uint
+	FlagVisualImpaired          *uint
+	FlagTextDescriptions        *uint
+	FlagOriginal                *uint
+	FlagCommentary              *uint
 	FlagLacing                  uint
 	MinCache                    uint
-	MaxCache                    uint
-	DefaultDuration             uint
-	DefaultDecodedFieldDuration uint
+	MaxCache                    *uint
+	DefaultDuration             *uint
+	DefaultDecodedFieldDuration *uint
 	TrackTimestampScale         float64
 	TrackOffset                 int
 	MaxBlockAdditionID          uint
 	BlockAdditionMapping        []BlockAdditionMapping
-	Name                        string
+	Name                        *string
 	Language                    string
-	LanguageIETF                string
+	LanguageIETF                *string
 	CodecID                     string
-	CodecPrivate                []byte
-	CodecName                   string
-	AttachmentLink              uint
-	CodecSettings               string
+	CodecPrivate                *[]byte
+	CodecName                   *string
+	AttachmentLink              *uint
+	CodecSettings               *string
 	CodecInfoURL                []string
 	CodecDownloadURL            []string
 	CodecDecodeAll              uint
 	TrackOverlay                []uint
-	CodecDelay                  uint
+	CodecDelay                  *uint
 	SeekPreRoll                 uint
 	TrackTranslate              []TrackTranslate
-	Video                       Video
-	Audio                       Audio
-	TrackOperation              TrackOperation
-	TrickTrackUID               uint
-	TrickTrackSegmentUID        []byte
+	Video                       *Video
+	Audio                       *Audio
+	TrackOperation              *TrackOperation
+	TrickTrackUID               *uint
+	TrickTrackSegmentUID        *[]byte
 	TrickTrackFlag              uint
-	TrickMasterTrackUID         uint
-	TrickMasterTrackSegmentUID  []byte
-	ContentEncodings            ContentEncodings
+	TrickMasterTrackUID         *uint
+	TrickMasterTrackSegmentUID  *[]byte
+	ContentEncodings            *ContentEncodings
 }
 
 type BlockAdditionMapping struct {
-	BlockAddIDValue     uint
-	BlockAddIDName      string
+	BlockAddIDValue     *uint
+	BlockAddIDName      *string
 	BlockAddIDType      uint
-	BlockAddIDExtraData []byte
+	BlockAddIDExtraData *[]byte
 }
 
 type TrackTranslate struct {
@@ -433,57 +433,57 @@ type Video struct {
 	FieldOrder      uint
 	StereoMode      uint
 	AlphaMode       uint
-	OldStereoMode   uint
+	OldStereoMode   *uint
 	PixelWidth      uint
 	PixelHeight     uint
 	PixelCropBottom uint
 	PixelCropTop    uint
 	PixelCropLeft   uint
 	PixelCropRight  uint
-	DisplayWidth    uint
-	DisplayHeight   uint
+	DisplayWidth    *uint
+	DisplayHeight   *uint
 	DisplayUnit     uint
 	AspectRatioType uint
-	ColourSpace     []byte
-	GammaValue      float64
-	FrameRate       float64
-	Colour          Colour
-	Projection      Projection
+	ColourSpace     *[]byte
+	GammaValue      *float64
+	FrameRate       *float64
+	Colour          *Colour
+	Projection      *Projection
 }
 
 type Colour struct {
 	MatrixCoefficients      uint
 	BitsPerChannel          uint
-	ChromaSubsamplingHorz   uint
-	ChromaSubsamplingVert   uint
-	CbSubsamplingHorz       uint
-	CbSubsamplingVert       uint
+	ChromaSubsamplingHorz   *uint
+	ChromaSubsamplingVert   *uint
+	CbSubsamplingHorz       *uint
+	CbSubsamplingVert       *uint
 	ChromaSitingHorz        uint
 	ChromaSitingVert        uint
 	Range                   uint
 	TransferCharacteristics uint
 	Primaries               uint
-	MaxCLL                  uint
-	MaxFALL                 uint
-	MasteringMetadata       MasteringMetadata
+	MaxCLL                  *uint
+	MaxFALL                 *uint
+	MasteringMetadata       *MasteringMetadata
 }
 
 type MasteringMetadata struct {
-	PrimaryRChromaticityX   float64
-	PrimaryRChromaticityY   float64
-	PrimaryGChromaticityX   float64
-	PrimaryGChromaticityY   float64
-	PrimaryBChromaticityX   float64
-	PrimaryBChromaticityY   float64
-	WhitePointChromaticityX float64
-	WhitePointChromaticityY float64
-	LuminanceMax            float64
-	LuminanceMin            float64
+	PrimaryRChromaticityX   *float64
+	PrimaryRChromaticityY   *float64
+	PrimaryGChromaticityX   *float64
+	PrimaryGChromaticityY   *float64
+	PrimaryBChromaticityX   *float64
+	PrimaryBChromaticityY   *float64
+	WhitePointChromaticityX *float64
+	WhitePointChromaticityY *float64
+	LuminanceMax            *float64
+	LuminanceMin            *float64
 }
 
 type Projection struct {
 	ProjectionType      uint
-	ProjectionPrivate   []byte
+	ProjectionPrivate   *[]byte
 	ProjectionPoseYaw   float64
 	ProjectionPosePitch float64
 	ProjectionPoseRoll  float64
@@ -491,15 +491,15 @@ type Projection struct {
 
 type Audio struct {
 	SamplingFrequency       float64
-	OutputSamplingFrequency float64
+	OutputSamplingFrequency *float64
 	Channels                uint
-	ChannelPositions        []byte
-	BitDepth                uint
+	ChannelPositions        *[]byte
+	BitDepth                *uint
 }
 
 type TrackOperation struct {
-	TrackCombinePlanes TrackCombinePlanes
-	TrackJoinBlocks    TrackJoinBlocks
+	TrackCombinePlanes *TrackCombinePlanes
+	TrackJoinBlocks    *TrackJoinBlocks
 }
 
 type TrackCombinePlanes struct {
@@ -523,21 +523,21 @@ type ContentEncoding struct {
 	ContentEncodingOrder uint
 	ContentEncodingScope uint
 	ContentEncodingType  uint
-	ContentCompression   ContentCompression
-	ContentEncryption    ContentEncryption
+	ContentCompression   *ContentCompression
+	ContentEncryption    *ContentEncryption
 }
 
 type ContentCompression struct {
 	ContentCompAlgo     uint
-	ContentCompSettings []byte
+	ContentCompSettings *[]byte
 }
 
 type ContentEncryption struct {
 	ContentEncAlgo        uint
-	ContentEncKeyID       []byte
-	ContentEncAESSettings ContentEncAESSettings
-	ContentSignature      []byte
-	ContentSigKeyID       []byte
+	ContentEncKeyID       *[]byte
+	ContentEncAESSettings *ContentEncAESSettings
+	ContentSignature      *[]byte
+	ContentSigKeyID       *[]byte
 	ContentSigAlgo        uint
 	ContentSigHashAlgo    uint
 }
@@ -558,9 +558,9 @@ type CuePoint struct {
 type CueTrackPositions struct {
 	CueTrack            uint
 	CueClusterPosition  uint
-	CueRelativePosition uint
-	CueDuration         uint
-	CueBlockNumber      uint
+	CueRelativePosition *uint
+	CueDuration         *uint
+	CueBlockNumber      *uint
 	CueCodecState       uint
 	CueReference        []CueReference
 }
@@ -577,14 +577,14 @@ type Attachments struct {
 }
 
 type AttachedFile struct {
-	FileDescription   string
+	FileDescription   *string
 	FileName          string
 	FileMimeType      string
 	FileData          []byte
 	FileUID           uint
-	FileReferral      []byte
-	FileUsedStartTime uint
-	FileUsedEndTime   uint
+	FileReferral      *[]byte
+	FileUsedStartTime *uint
+	FileUsedEndTime   *uint
 }
 
 type Chapters struct {
@@ -592,7 +592,7 @@ type Chapters struct {
 }
 
 type EditionEntry struct {
-	EditionUID         uint
+	EditionUID         *uint
 	EditionFlagHidden  uint
 	EditionFlagDefault uint
 	EditionFlagOrdered uint
@@ -602,15 +602,15 @@ type EditionEntry struct {
 type ChapterAtom struct {
 	ChapterAtom              *ChapterAtom
 	ChapterUID               uint
-	ChapterStringUID         string
+	ChapterStringUID         *string
 	ChapterTimeStart         uint
-	ChapterTimeEnd           uint
+	ChapterTimeEnd           *uint
 	ChapterFlagHidden        uint
 	ChapterFlagEnabled       uint
-	ChapterSegmentUID        []byte
-	ChapterSegmentEditionUID uint
-	ChapterPhysicalEquiv     uint
-	ChapterTrack             ChapterTrack
+	ChapterSegmentUID        *[]byte
+	ChapterSegmentEditionUID *uint
+	ChapterPhysicalEquiv     *uint
+	ChapterTrack             *ChapterTrack
 	ChapterDisplay           []ChapterDisplay
 	ChapProcess              []ChapProcess
 }
@@ -628,7 +628,7 @@ type ChapterDisplay struct {
 
 type ChapProcess struct {
 	ChapProcessCodecID uint
-	ChapProcessPrivate []byte
+	ChapProcessPrivate *[]byte
 	ChapProcessCommand []ChapProcessCommand
 }
 
@@ -648,7 +648,7 @@ type Tag struct {
 
 type Targets struct {
 	TargetTypeValue  uint
-	TargetType       string
+	TargetType       *string
 	TagTrackUID      []uint
 	TagEditionUID    []uint
 	TagChapterUID    []uint
@@ -659,9 +659,9 @@ type SimpleTag struct {
 	SimpleTag       *SimpleTag
 	TagName         string
 	TagLanguage     string
-	TagLanguageIETF string
+	TagLanguageIETF *string
 	TagDefault      uint
 	TagDefaultBogus uint
-	TagString       string
-	TagBinary       []byte
+	TagString       *string
+	TagBinary       *[]byte
 }

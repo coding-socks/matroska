@@ -113,12 +113,12 @@ func writeStruct(w io.Writer, node *schema.TreeNode) {
 			fmt.Fprintf(w, "\n\t%s []%s", n.El.Name, schema.ResolveGoType(n.El.Type, n.El.Name))
 			return
 		}
-		// if !n.El.MaxOccurs.Unbounded() && n.El.MinOccurs == 0 && n.El.MaxOccurs.Val() == 1 {
-		// 	fmt.Fprintf(w, "\n\t%s *%s", n.El.Name, schema.ResolveGoType(n.El.Type, n.El.Name))
-		// 	return
-		// }
 		if n.El.ID == "0xE7" || n.El.ID == "0x2AD7B1" { // \Segment\Cluster\Timestamp, \Segment\Info\TimestampScale
 			fmt.Fprintf(w, "\n\t%s time.Duration", n.El.Name)
+			return
+		}
+		if !n.El.MaxOccurs.Unbounded() && n.El.MinOccurs == 0 && n.El.MaxOccurs.Val() == 1 && n.El.Default == nil {
+			fmt.Fprintf(w, "\n\t%s *%s", n.El.Name, schema.ResolveGoType(n.El.Type, n.El.Name))
 			return
 		}
 		fmt.Fprintf(w, "\n\t%s %s", n.El.Name, schema.ResolveGoType(n.El.Type, n.El.Name))
