@@ -13,7 +13,7 @@ A Matroska parser written in Go.
 
 Source: https://en.wikipedia.org/wiki/Matroska
 
-This library is based on the 7th iteration of [draft-ietf-cellar-matroska][draft-ietf-cellar-matroska-07]and the 6th iteration of [draft-ietf-cellar-codec][draft-ietf-cellar-codec-06]. None of these documents reached ["Internet Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.3) status yet.
+This library is based on the 7th iteration of [draft-ietf-cellar-matroska][draft-ietf-cellar-matroska-07] and the 6th iteration of [draft-ietf-cellar-codec][draft-ietf-cellar-codec-06]. None of these documents reached ["Internet Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.3) status yet.
 
 - draft-ietf-cellar-matroska is still an [Internet-Draft](https://tools.ietf.org/html/rfc2026#section-2.2).
 - draft-ietf-cellar-codec is still an [Internet-Draft](https://tools.ietf.org/html/rfc2026#section-2.2).
