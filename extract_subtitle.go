@@ -10,7 +10,17 @@ import (
 	"time"
 )
 
-func extractSRT(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
+func extractTrackSubtitle(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
+	switch t.CodecID {
+	case SubtitleCodecTEXTASS, SubtitleCodecASS, SubtitleCodecTEXTSSA, SubtitleCodecSSA:
+		return extractTrackSSA(w, i, cs, t)
+	case SubtitleCodecTEXTUTF8, SubtitleCodecTEXTASCII:
+		return extractTrackSRT(w, i, cs, t)
+	}
+	return fmt.Errorf("matroska: unknown subtitle codec %s", t.CodecID)
+}
+
+func extractTrackSRT(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
 	scale := i.TimestampScale
 	var blocks []Block
 	for cs.Next() {
@@ -44,7 +54,7 @@ func extractSRT(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
 
 		var sb strings.Builder
 
-		sb.WriteString(strconv.Itoa(i+1))
+		sb.WriteString(strconv.Itoa(i + 1))
 		sb.WriteRune('\n')
 		sb.WriteString(subRipTime(start))
 		sb.WriteString(" --> ")
@@ -72,7 +82,7 @@ func subRipTime(d time.Duration) string {
 	return fmt.Sprintf("%02d:%02d:%02d,%03d", h, m, s, ms)
 }
 
-func extractSSA(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
+func extractTrackSSA(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
 	if _, err := w.Write(*t.CodecPrivate); err != nil {
 		return err
 	}

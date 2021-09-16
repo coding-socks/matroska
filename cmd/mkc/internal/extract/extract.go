@@ -263,10 +263,17 @@ segment:
 
 func GuessExt(codecID string) string {
 	switch codecID {
+	// Audio
 	case matroska.AudioCodecAAC:
 		return ".aac"
 	case matroska.AudioCodecAC3:
 		return ".ac3"
+	case matroska.AudioCodecMP3:
+		return ".mp3"
+	// Video
+	case matroska.VideoCodecMSCOMP:
+		return ".avi"
+	// Subtitle
 	case matroska.SubtitleCodecTEXTASS:
 		return ".ass"
 	case matroska.SubtitleCodecTEXTSSA:
