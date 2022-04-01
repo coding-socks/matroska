@@ -1,62 +1,72 @@
 package matroska
 
+import (
+	"github.com/coding-socks/ebml"
+	"io"
+	"log"
+)
+
 type ClusterScanner interface {
 	Next() bool
 	Cluster() Cluster
 	Err() error
 }
 
-type ClusterSliceScanner struct {
-	i  int
-	cs []Cluster
+type clusterScanner struct {
+	d      *ebml.Decoder
+	el     ebml.Element
+	offset int64
+
+	cluster Cluster
+	err     error
 }
 
-func NewClusterSliceScanner(cs []Cluster) *ClusterSliceScanner {
-	return &ClusterSliceScanner{cs: cs}
+func NewClusterScanner(d *ebml.Decoder, el ebml.Element, offset int64) ClusterScanner {
+	return &clusterScanner{d: d, el: el, offset: offset}
 }
 
-func (c *ClusterSliceScanner) Next() bool {
-	if c.i >= (len(c.cs) - 1) {
-		return false
+func (c *clusterScanner) Next() bool {
+	d := c.d
+	segmentEl := c.el
+	offset := c.offset
+	for {
+		if ok, _ := d.EndOfElement(segmentEl, offset); ok {
+			// TODO: check return val
+			return false
+		}
+		el, n, err := d.Next()
+		if segmentEl.DataSize.Known() {
+			offset += int64(n)
+		}
+		if err == ebml.ErrInvalidVINTLength {
+			continue
+		} else if err != nil {
+			c.err = err
+			return false
+		}
+		if segmentEl.DataSize.Known() {
+			offset += el.DataSize.Size()
+		}
+		switch el.ID {
+		default:
+			if _, err := d.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
+				log.Fatalf("Could not skip %s: %s", el.ID, err)
+			}
+		case IDCluster:
+			var cl Cluster
+			if err := d.Decode(&cl); err != nil {
+				log.Fatalf("Could not decode %s: %s", el.ID, err)
+			}
+			c.cluster = cl
+			return true
+		}
 	}
-	c.i++
-	return true
 }
 
-func (c *ClusterSliceScanner) Cluster() Cluster {
-	return c.cs[c.i]
+func (c *clusterScanner) Cluster() Cluster {
+	return c.cluster
 }
 
-func (c *ClusterSliceScanner) Err() error {
-	return nil
-}
-
-type ClusterChannelScanner struct {
-	ch   <-chan Cluster
-	next Cluster
-	err  error
-}
-
-func NewClusterChannelScanner(ch <-chan Cluster) *ClusterChannelScanner {
-	return &ClusterChannelScanner{ch: ch}
-}
-
-func (cs *ClusterChannelScanner) Next() bool {
-	c, ok := <-cs.ch
-	cs.next = c
-	return ok
-}
-
-func (cs *ClusterChannelScanner) Cluster() Cluster {
-	return cs.next
-}
-
-func (cs *ClusterChannelScanner) Err() error {
-	return cs.err
-}
-
-func (cs *ClusterChannelScanner) Go(f func() error) {
-	go func() {
-		cs.err = f()
-	}()
+func (c *clusterScanner) Err() error {
+	return c.err
 }

@@ -187,41 +187,7 @@ segment:
 		}
 	}
 	spin.Stop()
-	ch := make(chan matroska.Cluster)
-	cs := matroska.NewClusterChannelScanner(ch)
-	cs.Go(func() error {
-		defer close(ch)
-		for {
-			if ok, _ := d.EndOfElement(segmentEl, offset); ok {
-				break
-			}
-			el, n, err := d.Next()
-			if segmentEl.DataSize.Known() {
-				offset += int64(n)
-			}
-			if err == ebml.ErrInvalidVINTLength {
-				continue
-			} else if err != nil {
-				return err
-			}
-			if segmentEl.DataSize.Known() {
-				offset += el.DataSize.Size()
-			}
-			switch el.ID {
-			default:
-				if _, err := d.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
-					log.Fatalf("Could not skip %s: %s", el.ID, err)
-				}
-			case matroska.IDCluster:
-				var cl matroska.Cluster
-				if err := d.Decode(&cl); err != nil {
-					log.Fatalf("Could not decode %s: %s", el.ID, err)
-				}
-				ch <- cl
-			}
-		}
-		return nil
-	})
+	cs := matroska.NewClusterScanner(d, segmentEl, offset)
 	options := make([]string, len(tracks.TrackEntry))
 	for i, e := range tracks.TrackEntry {
 		options[i] = fmt.Sprintf("Track %02d [%s]", e.TrackNumber, e.CodecID)
