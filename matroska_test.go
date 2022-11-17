@@ -1,9 +1,9 @@
 package matroska
 
 import (
+	"fmt"
 	"github.com/coding-socks/ebml"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,46 +44,65 @@ func TestDecode(t *testing.T) {
 		filename string
 		source   string
 		wantErr  bool
+
+		wantClusterLen int // Result of `mkvinfo -o matroska/test8.mkv | grep '|+ Cluster' | wc -l`
 	}{
 		{
 			name:     "Basic file",
 			filename: "test1.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test1.mkv?raw=true",
+
+			wantClusterLen: 11,
 		},
 		{
 			name:     "Non default timecodescale & aspect ratio",
 			filename: "test2.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test2.mkv?raw=true",
+
+			wantClusterLen: 47,
 		},
 		{
 			name:     "Header stripping & standard block",
 			filename: "test3.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test3.mkv?raw=true",
+
+			wantClusterLen: 47,
 		},
 		{
 			name:     "Live stream recording",
 			filename: "test4.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test4.mkv?raw=true",
+
+			wantClusterLen: 36,
 		},
 		{
 			name:     "Multiple audio/subtitles",
 			filename: "test5.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test5.mkv?raw=true",
+
+			wantClusterLen: 25,
 		},
 		{
 			name:     "Different EBML head sizes & cue-less seeking",
 			filename: "test6.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test6.mkv?raw=true",
+
+			wantClusterLen: 11,
 		},
 		{
 			name:     "Extra unknown/junk elements & damaged",
 			filename: "test7.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test7.mkv?raw=true",
+			wantErr:  true,
+
+			wantClusterLen: 37,
 		},
 		{
 			name:     "Audio gap",
 			filename: "test8.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test8.mkv?raw=true",
+
+			wantClusterLen: 47,
 		},
 	}
 	for _, tt := range tests {
@@ -106,12 +125,18 @@ func TestDecode(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			log.Printf("%+v", header)
+			fmt.Println("====")
+			fmt.Printf("%+v\n", header)
 			var b Segment
-			if err = d.DecodeBody(&b); err != nil && err != io.EOF {
-				t.Error(err)
+			if err = d.DecodeBody(&b); tt.wantErr != (err != nil && err != io.EOF) {
+				t.Errorf("DecodeBody() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			log.Printf("%+v", b.Info)
+			fmt.Printf("%+v\n", b.Info)
+			if got := len(b.Cluster); got != tt.wantClusterLen {
+				t.Errorf("len(DecodeBody().Cluster) got = %v, want %v", got, tt.wantClusterLen)
+			}
+			fmt.Printf("%+v\n", len(b.Cluster))
+			fmt.Println("====")
 		})
 	}
 }
