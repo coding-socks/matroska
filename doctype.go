@@ -17,17 +17,17 @@ var (
 	IDSeekID                      = "0x53AB"
 	IDSeekPosition                = "0x53AC"
 	IDInfo                        = "0x1549A966"
-	IDSegmentUID                  = "0x73A4"
+	IDSegmentUUID                 = "0x73A4"
 	IDSegmentFilename             = "0x7384"
-	IDPrevUID                     = "0x3CB923"
+	IDPrevUUID                    = "0x3CB923"
 	IDPrevFilename                = "0x3C83AB"
-	IDNextUID                     = "0x3EB923"
+	IDNextUUID                    = "0x3EB923"
 	IDNextFilename                = "0x3E83BB"
 	IDSegmentFamily               = "0x4444"
 	IDChapterTranslate            = "0x6924"
-	IDChapterTranslateEditionUID  = "0x69FC"
-	IDChapterTranslateCodec       = "0x69BF"
 	IDChapterTranslateID          = "0x69A5"
+	IDChapterTranslateCodec       = "0x69BF"
+	IDChapterTranslateEditionUID  = "0x69FC"
 	IDTimestampScale              = "0x2AD7B1"
 	IDDuration                    = "0x4489"
 	IDDateUTC                     = "0x4461"
@@ -46,8 +46,8 @@ var (
 	IDBlockVirtual                = "0xA2"
 	IDBlockAdditions              = "0x75A1"
 	IDBlockMore                   = "0xA6"
-	IDBlockAddID                  = "0xEE"
 	IDBlockAdditional             = "0xA5"
+	IDBlockAddID                  = "0xEE"
 	IDBlockDuration               = "0x9B"
 	IDReferencePriority           = "0xFA"
 	IDReferenceBlock              = "0xFB"
@@ -93,7 +93,7 @@ var (
 	IDBlockAddIDExtraData         = "0x41ED"
 	IDName                        = "0x536E"
 	IDLanguage                    = "0x22B59C"
-	IDLanguageIETF                = "0x22B59D"
+	IDLanguageBCP47               = "0x22B59D"
 	IDCodecID                     = "0x86"
 	IDCodecPrivate                = "0x63A2"
 	IDCodecName                   = "0x258688"
@@ -106,9 +106,9 @@ var (
 	IDCodecDelay                  = "0x56AA"
 	IDSeekPreRoll                 = "0x56BB"
 	IDTrackTranslate              = "0x6624"
-	IDTrackTranslateEditionUID    = "0x66FC"
-	IDTrackTranslateCodec         = "0x66BF"
 	IDTrackTranslateTrackID       = "0x66A5"
+	IDTrackTranslateCodec         = "0x66BF"
+	IDTrackTranslateEditionUID    = "0x66FC"
 	IDVideo                       = "0xE0"
 	IDFlagInterlaced              = "0x9A"
 	IDFieldOrder                  = "0x9D"
@@ -125,7 +125,7 @@ var (
 	IDDisplayHeight               = "0x54BA"
 	IDDisplayUnit                 = "0x54B2"
 	IDAspectRatioType             = "0x54B3"
-	IDColourSpace                 = "0x2EB524"
+	IDUncompressedFourCC          = "0x2EB524"
 	IDGammaValue                  = "0x2FB523"
 	IDFrameRate                   = "0x2383E3"
 	IDColour                      = "0x55B0"
@@ -165,6 +165,7 @@ var (
 	IDChannels                    = "0x9F"
 	IDChannelPositions            = "0x7D7B"
 	IDBitDepth                    = "0x6264"
+	IDEmphasis                    = "0x52F1"
 	IDTrackOperation              = "0xE2"
 	IDTrackCombinePlanes          = "0xE3"
 	IDTrackPlane                  = "0xE4"
@@ -213,7 +214,7 @@ var (
 	IDAttachedFile                = "0x61A7"
 	IDFileDescription             = "0x467E"
 	IDFileName                    = "0x466E"
-	IDFileMimeType                = "0x4660"
+	IDFileMediaType               = "0x4660"
 	IDFileData                    = "0x465C"
 	IDFileUID                     = "0x46AE"
 	IDFileReferral                = "0x4675"
@@ -225,6 +226,9 @@ var (
 	IDEditionFlagHidden           = "0x45BD"
 	IDEditionFlagDefault          = "0x45DB"
 	IDEditionFlagOrdered          = "0x45DD"
+	IDEditionDisplay              = "0x4520"
+	IDEditionString               = "0x4521"
+	IDEditionLanguageIETF         = "0x45E4"
 	IDChapterAtom                 = "0xB6"
 	IDChapterUID                  = "0x73C4"
 	IDChapterStringUID            = "0x5654"
@@ -232,7 +236,8 @@ var (
 	IDChapterTimeEnd              = "0x92"
 	IDChapterFlagHidden           = "0x98"
 	IDChapterFlagEnabled          = "0x4598"
-	IDChapterSegmentUID           = "0x6E67"
+	IDChapterSegmentUUID          = "0x6E67"
+	IDChapterSkipType             = "0x4588"
 	IDChapterSegmentEditionUID    = "0x6EBC"
 	IDChapterPhysicalEquiv        = "0x63C3"
 	IDChapterTrack                = "0x8F"
@@ -240,7 +245,7 @@ var (
 	IDChapterDisplay              = "0x80"
 	IDChapString                  = "0x85"
 	IDChapLanguage                = "0x437C"
-	IDChapLanguageIETF            = "0x437D"
+	IDChapLanguageBCP47           = "0x437D"
 	IDChapCountry                 = "0x437E"
 	IDChapProcess                 = "0x6944"
 	IDChapProcessCodecID          = "0x6955"
@@ -260,7 +265,7 @@ var (
 	IDSimpleTag                   = "0x67C8"
 	IDTagName                     = "0x45A3"
 	IDTagLanguage                 = "0x447A"
-	IDTagLanguageIETF             = "0x447B"
+	IDTagLanguageBCP47            = "0x447B"
 	IDTagDefault                  = "0x4484"
 	IDTagDefaultBogus             = "0x44B4"
 	IDTagString                   = "0x4487"
@@ -288,11 +293,11 @@ type Seek struct {
 }
 
 type Info struct {
-	SegmentUID       *[]byte
+	SegmentUUID      *[]byte
 	SegmentFilename  *string
-	PrevUID          *[]byte
+	PrevUUID         *[]byte
 	PrevFilename     *string
-	NextUID          *[]byte
+	NextUUID         *[]byte
 	NextFilename     *string
 	SegmentFamily    [][]byte
 	ChapterTranslate []ChapterTranslate
@@ -305,9 +310,9 @@ type Info struct {
 }
 
 type ChapterTranslate struct {
-	ChapterTranslateEditionUID []uint
-	ChapterTranslateCodec      uint
 	ChapterTranslateID         []byte
+	ChapterTranslateCodec      uint
+	ChapterTranslateEditionUID []uint
 }
 
 type Cluster struct {
@@ -343,8 +348,8 @@ type BlockAdditions struct {
 }
 
 type BlockMore struct {
-	BlockAddID      uint
 	BlockAdditional []byte
+	BlockAddID      uint
 }
 
 type Slices struct {
@@ -391,7 +396,7 @@ type TrackEntry struct {
 	BlockAdditionMapping        []BlockAdditionMapping
 	Name                        *string
 	Language                    string
-	LanguageIETF                *string
+	LanguageBCP47               *string
 	CodecID                     string
 	CodecPrivate                *[]byte
 	CodecName                   *string
@@ -401,7 +406,7 @@ type TrackEntry struct {
 	CodecDownloadURL            []string
 	CodecDecodeAll              uint
 	TrackOverlay                []uint
-	CodecDelay                  *uint
+	CodecDelay                  uint
 	SeekPreRoll                 uint
 	TrackTranslate              []TrackTranslate
 	Video                       *Video
@@ -423,32 +428,32 @@ type BlockAdditionMapping struct {
 }
 
 type TrackTranslate struct {
-	TrackTranslateEditionUID []uint
-	TrackTranslateCodec      uint
 	TrackTranslateTrackID    []byte
+	TrackTranslateCodec      uint
+	TrackTranslateEditionUID []uint
 }
 
 type Video struct {
-	FlagInterlaced  uint
-	FieldOrder      uint
-	StereoMode      uint
-	AlphaMode       uint
-	OldStereoMode   *uint
-	PixelWidth      uint
-	PixelHeight     uint
-	PixelCropBottom uint
-	PixelCropTop    uint
-	PixelCropLeft   uint
-	PixelCropRight  uint
-	DisplayWidth    *uint
-	DisplayHeight   *uint
-	DisplayUnit     uint
-	AspectRatioType uint
-	ColourSpace     *[]byte
-	GammaValue      *float64
-	FrameRate       *float64
-	Colour          *Colour
-	Projection      *Projection
+	FlagInterlaced     uint
+	FieldOrder         uint
+	StereoMode         uint
+	AlphaMode          uint
+	OldStereoMode      *uint
+	PixelWidth         uint
+	PixelHeight        uint
+	PixelCropBottom    uint
+	PixelCropTop       uint
+	PixelCropLeft      uint
+	PixelCropRight     uint
+	DisplayWidth       *uint
+	DisplayHeight      *uint
+	DisplayUnit        uint
+	AspectRatioType    uint
+	UncompressedFourCC *[]byte
+	GammaValue         *float64
+	FrameRate          *float64
+	Colour             *Colour
+	Projection         *Projection
 }
 
 type Colour struct {
@@ -495,6 +500,7 @@ type Audio struct {
 	Channels                uint
 	ChannelPositions        *[]byte
 	BitDepth                *uint
+	Emphasis                uint
 }
 
 type TrackOperation struct {
@@ -579,7 +585,7 @@ type Attachments struct {
 type AttachedFile struct {
 	FileDescription   *string
 	FileName          string
-	FileMimeType      string
+	FileMediaType     string
 	FileData          []byte
 	FileUID           uint
 	FileReferral      *[]byte
@@ -596,7 +602,13 @@ type EditionEntry struct {
 	EditionFlagHidden  uint
 	EditionFlagDefault uint
 	EditionFlagOrdered uint
+	EditionDisplay     []EditionDisplay
 	ChapterAtom        []ChapterAtom
+}
+
+type EditionDisplay struct {
+	EditionString       string
+	EditionLanguageIETF []string
 }
 
 type ChapterAtom struct {
@@ -607,7 +619,8 @@ type ChapterAtom struct {
 	ChapterTimeEnd           *uint
 	ChapterFlagHidden        uint
 	ChapterFlagEnabled       uint
-	ChapterSegmentUID        *[]byte
+	ChapterSegmentUUID       *[]byte
+	ChapterSkipType          *uint
 	ChapterSegmentEditionUID *uint
 	ChapterPhysicalEquiv     *uint
 	ChapterTrack             *ChapterTrack
@@ -620,10 +633,10 @@ type ChapterTrack struct {
 }
 
 type ChapterDisplay struct {
-	ChapString       string
-	ChapLanguage     []string
-	ChapLanguageIETF []string
-	ChapCountry      []string
+	ChapString        string
+	ChapLanguage      []string
+	ChapLanguageBCP47 []string
+	ChapCountry       []string
 }
 
 type ChapProcess struct {
@@ -656,12 +669,12 @@ type Targets struct {
 }
 
 type SimpleTag struct {
-	SimpleTag       *SimpleTag
-	TagName         string
-	TagLanguage     string
-	TagLanguageIETF *string
-	TagDefault      uint
-	TagDefaultBogus uint
-	TagString       *string
-	TagBinary       *[]byte
+	SimpleTag        *SimpleTag
+	TagName          string
+	TagLanguage      string
+	TagLanguageBCP47 *string
+	TagDefault       uint
+	TagDefaultBogus  uint
+	TagString        *string
+	TagBinary        *[]byte
 }
