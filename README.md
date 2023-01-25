@@ -1,4 +1,4 @@
-# EBML
+# Matroska
 
 A Matroska parser written in Go.
 
