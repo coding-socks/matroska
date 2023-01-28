@@ -309,6 +309,11 @@ type Info struct {
 	WritingApp       string
 }
 
+const (
+	ChapterTranslateCodecMatroskaScript = 0
+	ChapterTranslateCodecDVDMenu        = 1
+)
+
 type ChapterTranslate struct {
 	ChapterTranslateID         []byte
 	ChapterTranslateCodec      uint
@@ -373,6 +378,17 @@ type Tracks struct {
 	TrackEntry []TrackEntry
 }
 
+const (
+	TrackTypeVideo    = 1
+	TrackTypeAudio    = 2
+	TrackTypeComplex  = 3
+	TrackTypeLogo     = 16
+	TrackTypeSubtitle = 17
+	TrackTypeButtons  = 18
+	TrackTypeControl  = 32
+	TrackTypeMetadata = 33
+)
+
 type TrackEntry struct {
 	TrackNumber                 uint
 	TrackUID                    uint
@@ -427,11 +443,75 @@ type BlockAdditionMapping struct {
 	BlockAddIDExtraData *[]byte
 }
 
+const (
+	TrackTranslateCodecMatroskaScript = 0
+	TrackTranslateCodecDVDMenu        = 1
+)
+
 type TrackTranslate struct {
 	TrackTranslateTrackID    []byte
 	TrackTranslateCodec      uint
 	TrackTranslateEditionUID []uint
 }
+
+const (
+	FlagInterlacedUndetermined = 0
+	FlagInterlacedInterlaced   = 1
+	FlagInterlacedProgressive  = 2
+)
+
+const (
+	FieldOrderProgressive  = 0
+	FieldOrderTff          = 1
+	FieldOrderUndetermined = 2
+	FieldOrderBff          = 6
+	FieldOrderBffSwapped   = 9
+	FieldOrderTffSwapped   = 14
+)
+
+const (
+	StereoModeMono                                   = 0
+	StereoModeSideBySideLeftEyeFirst                 = 1
+	StereoModeTopBottomRightEyeIsFirst               = 2
+	StereoModeTopBottomLeftEyeIsFirst                = 3
+	StereoModeCheckboardRightEyeIsFirst              = 4
+	StereoModeCheckboardLeftEyeIsFirst               = 5
+	StereoModeRowInterleavedRightEyeIsFirst          = 6
+	StereoModeRowInterleavedLeftEyeIsFirst           = 7
+	StereoModeColumnInterleavedRightEyeIsFirst       = 8
+	StereoModeColumnInterleavedLeftEyeIsFirst        = 9
+	StereoModeAnaglyphCyanRed                        = 10
+	StereoModeSideBySideRightEyeFirst                = 11
+	StereoModeAnaglyphGreenMagenta                   = 12
+	StereoModeBothEyesLacedInOneBlockLeftEyeIsFirst  = 13
+	StereoModeBothEyesLacedInOneBlockRightEyeIsFirst = 14
+)
+
+const (
+	AlphaModeNone    = 0
+	AlphaModePresent = 1
+)
+
+const (
+	OldStereoModeMono     = 0
+	OldStereoModeRightEye = 1
+	OldStereoModeLeftEye  = 2
+	OldStereoModeBothEyes = 3
+)
+
+const (
+	DisplayUnitPixels             = 0
+	DisplayUnitCentimeters        = 1
+	DisplayUnitInches             = 2
+	DisplayUnitDisplayAspectRatio = 3
+	DisplayUnitUnknown            = 4
+)
+
+const (
+	AspectRatioTypeFreeResizing    = 0
+	AspectRatioTypeKeepAspectRatio = 1
+	AspectRatioTypeFixed           = 2
+)
 
 type Video struct {
 	FlagInterlaced     uint
@@ -455,6 +535,83 @@ type Video struct {
 	Colour             *Colour
 	Projection         *Projection
 }
+
+const (
+	MatrixCoefficientsIdentity                          = 0
+	MatrixCoefficientsITURBT709                         = 1
+	MatrixCoefficientsUnspecified                       = 2
+	MatrixCoefficientsReserved                          = 3
+	MatrixCoefficientsUSFCC73682                        = 4
+	MatrixCoefficientsITURBT470BG                       = 5
+	MatrixCoefficientsSMPTE170M                         = 6
+	MatrixCoefficientsSMPTE240M                         = 7
+	MatrixCoefficientsYCoCg                             = 8
+	MatrixCoefficientsBT2020NonConstantLuminance        = 9
+	MatrixCoefficientsBT2020ConstantLuminance           = 10
+	MatrixCoefficientsSMPTEST2085                       = 11
+	MatrixCoefficientsChromaDerivedNonConstantLuminance = 12
+	MatrixCoefficientsChromaDerivedConstantLuminance    = 13
+	MatrixCoefficientsITURBT21000                       = 14
+)
+
+const (
+	ChromaSitingHorzUnspecified    = 0
+	ChromaSitingHorzLeftCollocated = 1
+	ChromaSitingHorzHalf           = 2
+)
+
+const (
+	ChromaSitingVertUnspecified   = 0
+	ChromaSitingVertTopCollocated = 1
+	ChromaSitingVertHalf          = 2
+)
+
+const (
+	RangeUnspecified                 = 0
+	RangeBroadcastRange              = 1
+	RangeFullRangeNoClipping         = 2
+	RangeDefinedByMatrixCoefficients = 3
+	RangeTransferCharacteristics     = 3
+)
+
+const (
+	TransferCharacteristicsReserved                         = 0
+	TransferCharacteristicsITURBT709                        = 1
+	TransferCharacteristicsUnspecified                      = 2
+	TransferCharacteristicsReserved2                        = 3
+	TransferCharacteristicsGamma22CurveBT470M               = 4
+	TransferCharacteristicsGamma28CurveBT470BG              = 5
+	TransferCharacteristicsSMPTE170M                        = 6
+	TransferCharacteristicsSMPTE240M                        = 7
+	TransferCharacteristicsLinear                           = 8
+	TransferCharacteristicsLog                              = 9
+	TransferCharacteristicsLogSqrt                          = 10
+	TransferCharacteristicsIEC6196624                       = 11
+	TransferCharacteristicsITURBT1361ExtendedColourGamut    = 12
+	TransferCharacteristicsIEC6196621                       = 13
+	TransferCharacteristicsITURBT202010Bit                  = 14
+	TransferCharacteristicsITURBT202012Bit                  = 15
+	TransferCharacteristicsITURBT2100PerceptualQuantization = 16
+	TransferCharacteristicsSMPTEST4281                      = 17
+	TransferCharacteristicsARIBSTDB67HLG                    = 18
+)
+
+const (
+	PrimariesReserved                      = 0
+	PrimariesITURBT709                     = 1
+	PrimariesUnspecified                   = 2
+	PrimariesReserved2                     = 3
+	PrimariesITURBT470M                    = 4
+	PrimariesITURBT470BGBT601625           = 5
+	PrimariesITURBT601525SMPTE170M         = 6
+	PrimariesSMPTE240M                     = 7
+	PrimariesFILM                          = 8
+	PrimariesITURBT2020                    = 9
+	PrimariesSMPTEST4281                   = 10
+	PrimariesSMPTERP4322                   = 11
+	PrimariesSMPTEEG4322                   = 12
+	PrimariesEBUTech3213EJEDECP22Phosphors = 22
+)
 
 type Colour struct {
 	MatrixCoefficients      uint
@@ -486,6 +643,13 @@ type MasteringMetadata struct {
 	LuminanceMin            *float64
 }
 
+const (
+	ProjectionTypeRectangular     = 0
+	ProjectionTypeEquirectangular = 1
+	ProjectionTypeCubemap         = 2
+	ProjectionTypeMesh            = 3
+)
+
 type Projection struct {
 	ProjectionType      uint
 	ProjectionPrivate   *[]byte
@@ -493,6 +657,22 @@ type Projection struct {
 	ProjectionPosePitch float64
 	ProjectionPoseRoll  float64
 }
+
+const (
+	EmphasisNoEmphasis      = 0
+	EmphasisCDAudio         = 1
+	EmphasisReserved        = 2
+	EmphasisCCITJ17         = 3
+	EmphasisFM50            = 4
+	EmphasisFM75            = 5
+	EmphasisPhonoRIAA       = 10
+	EmphasisPhonoIECN78     = 11
+	EmphasisPhonoTELDEC     = 12
+	EmphasisPhonoEMI        = 13
+	EmphasisPhonoColumbiaLP = 14
+	EmphasisPhonoLONDON     = 15
+	EmphasisPhonoNARTB      = 16
+)
 
 type Audio struct {
 	SamplingFrequency       float64
@@ -512,6 +692,12 @@ type TrackCombinePlanes struct {
 	TrackPlane []TrackPlane
 }
 
+const (
+	TrackPlaneTypeLeftEye    = 0
+	TrackPlaneTypeRightEye   = 1
+	TrackPlaneTypeBackground = 2
+)
+
 type TrackPlane struct {
 	TrackPlaneUID  uint
 	TrackPlaneType uint
@@ -525,6 +711,17 @@ type ContentEncodings struct {
 	ContentEncoding []ContentEncoding
 }
 
+const (
+	ContentEncodingScopeBlock   = 1
+	ContentEncodingScopePrivate = 2
+	ContentEncodingScopeNext    = 4
+)
+
+const (
+	ContentEncodingTypeCompression = 0
+	ContentEncodingTypeEncryption  = 1
+)
+
 type ContentEncoding struct {
 	ContentEncodingOrder uint
 	ContentEncodingScope uint
@@ -533,10 +730,37 @@ type ContentEncoding struct {
 	ContentEncryption    *ContentEncryption
 }
 
+const (
+	ContentCompAlgoZlib            = 0
+	ContentCompAlgoBzlib           = 1
+	ContentCompAlgoLzo1X           = 2
+	ContentCompAlgoHeaderStripping = 3
+)
+
 type ContentCompression struct {
 	ContentCompAlgo     uint
 	ContentCompSettings *[]byte
 }
+
+const (
+	ContentEncAlgoNotEncrypted = 0
+	ContentEncAlgoDES          = 1
+	ContentEncAlgo3DES         = 2
+	ContentEncAlgoTwofish      = 3
+	ContentEncAlgoBlowfish     = 4
+	ContentEncAlgoAES          = 5
+)
+
+const (
+	ContentSigAlgoNotSigned = 0
+	ContentSigAlgoRSA       = 1
+)
+
+const (
+	ContentSigHashAlgoNotSigned = 0
+	ContentSigHashAlgoSHA1160   = 1
+	ContentSigHashAlgoMD5       = 2
+)
 
 type ContentEncryption struct {
 	ContentEncAlgo        uint
@@ -547,6 +771,11 @@ type ContentEncryption struct {
 	ContentSigAlgo        uint
 	ContentSigHashAlgo    uint
 }
+
+const (
+	AESSettingsCipherModeAESCTR = 1
+	AESSettingsCipherModeAESCBC = 2
+)
 
 type ContentEncAESSettings struct {
 	AESSettingsCipherMode uint
@@ -611,6 +840,16 @@ type EditionDisplay struct {
 	EditionLanguageIETF []string
 }
 
+const (
+	ChapterSkipTypeNoSkipping     = 0
+	ChapterSkipTypeOpeningCredits = 1
+	ChapterSkipTypeEndCredits     = 2
+	ChapterSkipTypeRecap          = 3
+	ChapterSkipTypeNextPreview    = 4
+	ChapterSkipTypePreview        = 5
+	ChapterSkipTypeAdvertisement  = 6
+)
+
 type ChapterAtom struct {
 	ChapterAtom              *ChapterAtom
 	ChapterUID               uint
@@ -644,6 +883,12 @@ type ChapProcess struct {
 	ChapProcessPrivate *[]byte
 	ChapProcessCommand []ChapProcessCommand
 }
+
+const (
+	ChapProcessTimeDuringTheWholeChapter     = 0
+	ChapProcessTimeBeforeStartingPlayback    = 1
+	ChapProcessTimeAfterPlaybackOfTheChapter = 2
+)
 
 type ChapProcessCommand struct {
 	ChapProcessTime uint
