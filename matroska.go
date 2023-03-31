@@ -83,15 +83,15 @@ func NewBlock(block []byte, tsoffset, scale, d time.Duration, t BlockType) (Bloc
 	}, nil
 }
 
-func ExtractTract(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
+func ExtractTract(w io.Writer, s *Scanner, t TrackEntry) error {
 	prefix, _, _ := CodecID(t.CodecID)
 	switch prefix {
 	case CodecTypeVideo:
-		return extractTrackVideo(w, i, cs, t)
+		return extractTrackVideo(w, s, t)
 	case CodecTypeAudio:
-		return extractTrackAudio(w, i, cs, t)
+		return extractTrackAudio(w, s, t)
 	case CodecTypeSubtitle:
-		return extractTrackSubtitle(w, i, cs, t)
+		return extractTrackSubtitle(w, s, t)
 	}
 	return fmt.Errorf("matroska: unknown codec %s", t.CodecID)
 }

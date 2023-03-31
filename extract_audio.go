@@ -6,19 +6,19 @@ import (
 	"time"
 )
 
-func extractTrackAudio(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
+func extractTrackAudio(w io.Writer, s *Scanner, t TrackEntry) error {
 	switch t.CodecID {
 	case AudioCodecMP2, AudioCodecMP3:
-		return extractTrackMPEG(w, i, cs, t)
+		return extractTrackMPEG(w, s, t)
 	}
 	return fmt.Errorf("matroska: unknown audio codec %s", t.CodecID)
 }
 
-func extractTrackMPEG(w io.Writer, i Info, cs ClusterScanner, t TrackEntry) error {
-	scale := i.TimestampScale
+func extractTrackMPEG(w io.Writer, s *Scanner, t TrackEntry) error {
+	scale := s.Info().TimestampScale
 	var blocks []Block
-	for cs.Next() {
-		c := cs.Cluster()
+	for s.Next() {
+		c := s.Cluster()
 		m := len(c.SimpleBlock) + len(c.BlockGroup)
 		if m == 0 {
 			continue

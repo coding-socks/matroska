@@ -2,43 +2,12 @@ package matroska
 
 import (
 	"fmt"
-	"github.com/coding-socks/ebml"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func Test_init(t *testing.T) {
-	found := false
-	for _, docType := range ebml.DocTypes() {
-		if docType == "matroska" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Error("matroska doctype not found")
-	}
-}
-
-func downloadTestFile(filename, source string) error {
-	resp, err := http.Get(source)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	f, err := os.Create(filepath.Join(".", filename))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = io.Copy(f, resp.Body)
-	return err
-}
-
-func TestDecode(t *testing.T) {
+func TestScanner(t *testing.T) {
 	tests := []struct {
 		name     string
 		filename string
@@ -120,21 +89,25 @@ func TestDecode(t *testing.T) {
 				}
 			}
 			defer f.Close()
-			d := ebml.NewDecoder(f)
-			header, err := d.DecodeHeader()
+			s, err := NewScanner(f)
 			if err != nil {
 				t.Fatal(err)
 			}
-			fmt.Printf("%+v\n", header)
-			var b Segment
-			if err = d.DecodeBody(&b); tt.wantErr != (err != nil && err != io.EOF) {
-				t.Errorf("DecodeBody() error = %v, wantErr %v", err, tt.wantErr)
+			fmt.Printf("%+v\n", s.Info())
+			fmt.Printf("%+v\n", s.Tracks())
+			seekHead, ok := s.SeekHead()
+			fmt.Printf("%+v, %+v\n", ok, seekHead)
+			var cluster []Cluster
+			for s.Next() {
+				cluster = append(cluster, s.Cluster())
 			}
-			fmt.Printf("%+v\n", b.Info)
-			if got := len(b.Cluster); got != tt.wantClusterLen {
-				t.Errorf("len(DecodeBody().Cluster) got = %v, want %v", got, tt.wantClusterLen)
+			if tt.wantErr != (s.Err() != nil) {
+				t.Error(s.Err())
 			}
-			fmt.Printf("%+v\n", len(b.Cluster))
+			if got := len(cluster); got != tt.wantClusterLen {
+				t.Errorf("len(Cluster) got = %v, want %v", got, tt.wantClusterLen)
+			}
+			//fmt.Printf("%+v\n", len(b.Cluster))
 		})
 	}
 }
