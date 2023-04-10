@@ -1,10 +1,10 @@
 package matroska
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/coding-socks/ebml"
+	"github.com/coding-socks/ebml/schema"
 	"io"
 )
 
@@ -110,13 +110,13 @@ func (s *Scanner) Next() bool {
 		switch el.ID {
 		default:
 			if _, err := d.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
-				s.err = fmt.Errorf("matroska: could not skip %s: %w", el.ID, err)
+				s.err = fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 				return false
 			}
 		case IDCluster:
 			var cl Cluster
 			if err := d.Decode(&cl); err != nil {
-				s.err = fmt.Errorf("matroska: could not decode %s: %s", el.ID, err)
+				s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 				return err == ebml.ErrElementOverflow
 			}
 			s.cluster = cl
@@ -143,7 +143,7 @@ segment:
 		}
 		switch el.ID {
 		default:
-			return fmt.Errorf("matroska: got %s instead of segment", el.ID)
+			return fmt.Errorf("matroska: got %v instead of segment", el.ID)
 		case ebml.IDVoid:
 			continue
 		case def.Root.ID:
@@ -179,13 +179,13 @@ segment:
 		switch el.ID {
 		default:
 			if _, err := s.decoder.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
-				return fmt.Errorf("matroska: could not skip %s: %w", el.ID, err)
+				return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 			}
 			continue
 		case IDSeekHead:
 			sh := &SeekHead{}
 			if err := s.decoder.Decode(sh); err != nil {
-				return fmt.Errorf("matroska: could not decode %s: %s", el.ID, err)
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
 			// There could be a second SeekHead element according to Section 6.3.
 			if s.seekHead == nil {
@@ -200,12 +200,12 @@ segment:
 		case IDInfo:
 			s.info = &Info{}
 			if err := s.decoder.Decode(s.info); err != nil {
-				return fmt.Errorf("matroska: could not decode %s: %s", el.ID, err)
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
 		case IDTracks:
 			s.tracks = &Tracks{}
 			if err := s.decoder.Decode(s.tracks); err != nil {
-				return fmt.Errorf("matroska: could not decode %s: %s", el.ID, err)
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
 		case IDCluster:
 			return ErrUnexpectedClusterElement
@@ -249,7 +249,7 @@ segment:
 			switch el.ID {
 			default:
 				if _, err := s.decoder.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
-					return fmt.Errorf("matroska: could not skip %s: %w", el.ID, err)
+					return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 				}
 				continue
 			case IDCluster:
@@ -264,14 +264,13 @@ segment:
 	return nil
 }
 
-func (s *Scanner) seekTo(seekID string, n int) (int64, bool) {
+func (s *Scanner) seekTo(seekID schema.ElementID, n int) (int64, bool) {
 	if s.seekHead == nil {
 		return 0, false
 	}
 	i := 0
 	for _, seek := range s.seekHead.Seek {
-		id := fmt.Sprintf("0x%X", seek.SeekID)
-		if id == seekID {
+		if seek.SeekID == seekID {
 			if i < n {
 				i++
 				continue
@@ -289,9 +288,8 @@ func (s *Scanner) updateFSeek(el ebml.Element) error {
 		if err != nil {
 			return fmt.Errorf("matroska: could not read position: %w", err)
 		}
-		id, _ := hex.DecodeString(el.ID[2:])
 		s.fSeekHead.Seek = append(s.fSeekHead.Seek, Seek{
-			SeekID:       id,
+			SeekID:       el.ID,
 			SeekPosition: uint(pos - s.segmentStart),
 		})
 	}
