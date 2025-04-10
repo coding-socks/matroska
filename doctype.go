@@ -311,11 +311,6 @@ type Info struct {
 	WritingApp       string
 }
 
-const (
-	ChapterTranslateCodecMatroskaScript = 0
-	ChapterTranslateCodecDVDMenu        = 1
-)
-
 type ChapterTranslate struct {
 	ChapterTranslateID         []byte
 	ChapterTranslateCodec      uint
@@ -445,11 +440,6 @@ type BlockAdditionMapping struct {
 	BlockAddIDExtraData *[]byte
 }
 
-const (
-	TrackTranslateCodecMatroskaScript = 0
-	TrackTranslateCodecDVDMenu        = 1
-)
-
 type TrackTranslate struct {
 	TrackTranslateTrackID    []byte
 	TrackTranslateCodec      uint
@@ -463,12 +453,12 @@ const (
 )
 
 const (
-	FieldOrderProgressive  = 0
-	FieldOrderTff          = 1
-	FieldOrderUndetermined = 2
-	FieldOrderBff          = 6
-	FieldOrderBffSwapped   = 9
-	FieldOrderTffSwapped   = 14
+	FieldOrderProgressive    = 0
+	FieldOrderTff            = 1
+	FieldOrderUndetermined   = 2
+	FieldOrderBff            = 6
+	FieldOrderTffInterleaved = 9
+	FieldOrderBffInterleaved = 14
 )
 
 const (
@@ -714,9 +704,9 @@ type ContentEncodings struct {
 }
 
 const (
-	ContentEncodingScopeBlock   = 1
-	ContentEncodingScopePrivate = 2
-	ContentEncodingScopeNext    = 4
+	ContentEncodingScopeBlock   = 0x1
+	ContentEncodingScopePrivate = 0x2
+	ContentEncodingScopeNext    = 0x4
 )
 
 const (
@@ -850,6 +840,7 @@ const (
 	ChapterSkipTypeNextPreview    = 4
 	ChapterSkipTypePreview        = 5
 	ChapterSkipTypeAdvertisement  = 6
+	ChapterSkipTypeIntermission   = 7
 )
 
 type ChapterAtom struct {
@@ -879,6 +870,11 @@ type ChapterDisplay struct {
 	ChapLanguageBCP47 []string
 	ChapCountry       []string
 }
+
+const (
+	ChapProcessCodecIDMatroskaScript = 0
+	ChapProcessCodecIDDVDMenu        = 1
+)
 
 type ChapProcess struct {
 	ChapProcessCodecID uint

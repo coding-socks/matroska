@@ -13,10 +13,10 @@ A Matroska parser written in Go.
 
 Source: https://en.wikipedia.org/wiki/Matroska
 
-This library is based on the 14th iteration of [draft-ietf-cellar-matroska][draft-ietf-cellar-matroska-14] and the 10th iteration of [draft-ietf-cellar-codec][draft-ietf-cellar-codec-10]. None of these documents reached ["Internet Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.3) status yet.
+This library is based on the version of [RFC 9559][rfc9559] and the 10th iteration of [draft-ietf-cellar-codec][draft-ietf-cellar-codec-14]. None of these documents reached ["Internet Standard"](https://datatracker.ietf.org/html/rfc2026#section-4.1.3) status yet.
 
-- draft-ietf-cellar-matroska is still an [Internet-Draft](https://tools.ietf.org/html/rfc2026#section-2.2).
-- draft-ietf-cellar-codec is still an [Internet-Draft](https://tools.ietf.org/html/rfc2026#section-2.2).
+- RFC 9559 is still a [Proposed Standard](https://datatracker.ietf.org/doc/html/rfc2026#section-4.1.1)
+- draft-ietf-cellar-codec is still an [Internet-Draft](https://datatracker.ietf.org/html/rfc2026#section-2.2).
 
 The goal of this project is to create an implementation based on these documents and during the implementation provide feedback.
 
@@ -26,7 +26,7 @@ The goal of this project is to create an implementation based on these documents
 
 Beta version will be considered when the feature set covers most of the documents the implementation is based on, and the public API is reached a mature state.
 
-Stable version will be considered only if enough positive feedback is gathered to lock the public API and all document the implementation is based on became ["Internet Standard"](https://tools.ietf.org/html/rfc2026#section-4.1.3).
+Stable version will be considered only if enough positive feedback is gathered to lock the public API and all document the implementation is based on became ["Internet Standard"](https://datatracker.ietf.org/html/rfc2026#section-4.1.3).
 
 ## Documents
 
@@ -43,8 +43,8 @@ Huge thanks to the [Matroska.org](https://www.matroska.org/) for their work.
 
 ### IETF Documents
 
-- [draft-ietf-cellar-matroska-14: Matroska Media Container Format Specifications][draft-ietf-cellar-matroska-14]
-- [draft-ietf-cellar-codec-10: Matroska Media Container Codec Specifications][draft-ietf-cellar-codec-10]
+- [RFC 9559: Matroska Media Container Format Specification][rfc9559]
+- [draft-ietf-cellar-codec-14: Matroska Media Container Codec Specifications][draft-ietf-cellar-codec-14]
 
 Huge thanks to the [IETF CELLAR Working Group](https://datatracker.ietf.org/wg/cellar/charter/) for their work.
 
@@ -61,20 +61,20 @@ Inspiration for the implementation comes from the following places:
 
 Last updated: 2020-02-18
 
-| URL                                                               | Status      |
-|-------------------------------------------------------------------| ----------- |
-| https://github.com/at-wat/ebml-go                                 | In active development |
+| URL                                                               | Status                      |
+|-------------------------------------------------------------------|-----------------------------|
+| https://github.com/at-wat/ebml-go                                 | In active development       |
 | https://github.com/ebml-go/ebml + https://github.com/ebml-go/webm | Last updated on 25 Sep 2016 |
-| https://github.com/ehmry/go-ebml                                  | Archived |
+| https://github.com/ehmry/go-ebml                                  | Archived                    |
 | https://github.com/jacereda/ebml                                  | Last updated on 10 Jan 2016 |
 | https://github.com/mediocregopher/ebmlstream                      | Last updated on 15 Dec 2014 |
 | https://github.com/pankrator/ebml-parser                          | Last updated on 24 Jun 2020 |
 | https://github.com/pixelbender/go-matroska                        | Last updated on 29 Oct 2018 |
 | https://github.com/pubblic/ebml                                   | Last updated on 12 Dec 2018 |
 | https://github.com/quadrifoglio/go-mkv                            | Last updated on 20 Jun 2018 |
-| https://github.com/rrerolle/ebml-go                               | Last updated on 1 Dec 2012 |
+| https://github.com/rrerolle/ebml-go                               | Last updated on 1 Dec 2012  |
 | https://github.com/remko/go-mkvparse                              | Last updated on 14 Jun 2020 |
-| https://github.com/tpjg/ebml-go                                   | Last updated on 1 Dec 2012 |
+| https://github.com/tpjg/ebml-go                                   | Last updated on 1 Dec 2012  |
 
-[draft-ietf-cellar-matroska-14]: https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-14.html
-[draft-ietf-cellar-codec-10]: https://www.ietf.org/archive/id/draft-ietf-cellar-codec-10.html
+[rfc9559]: https://datatracker.ietf.org/doc/html/rfc9559
+[draft-ietf-cellar-codec-14]: https://datatracker.ietf.org/doc/html/draft-ietf-cellar-codec-14

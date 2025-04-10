@@ -122,7 +122,7 @@ func writeStruct(w io.Writer, node *schema.TreeNode) {
 			fmt.Fprint(w, "const (")
 			for _, enum := range n.El.Restriction.Enum {
 				val := enum.Value
-				if !isNumeric(val) {
+				if n.El.Type == "string" {
 					val = fmt.Sprintf("%q", val)
 				}
 				for _, label := range strings.Split(enum.Label, " / ") {
@@ -188,6 +188,14 @@ func studlyCase(s string) string {
 }
 
 func isNumeric(s string) bool {
+	if len(s) > 2 && len(s)%2 == 0 && strings.HasPrefix(s, "0x") {
+		for _, r := range s {
+			if !unicode.IsNumber(r) || ('a' <= r && r <= 'f') {
+				return false
+			}
+		}
+		return true
+	}
 	for _, r := range s {
 		if !unicode.IsNumber(r) {
 			return false
