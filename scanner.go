@@ -89,7 +89,7 @@ func (s *Scanner) Next() bool {
 	segmentEl := s.segmentEl
 	for {
 		el, n, err := d.NextOf(segmentEl, s.offset)
-		if segmentEl.DataSize.Known() {
+		if segmentEl.DataSize != -1 {
 			s.offset += int64(n)
 		}
 		if err == ebml.ErrInvalidVINTLength {
@@ -100,16 +100,16 @@ func (s *Scanner) Next() bool {
 			s.err = err
 			return false
 		}
-		if segmentEl.DataSize.Known() {
+		if segmentEl.DataSize != -1 {
 			// detect element overflow early to pretend the element is smaller
-			if segmentEl.DataSize.Size() < s.offset+el.DataSize.Size() {
-				el.DataSize = ebml.NewKnownDataSize(segmentEl.DataSize.Size() - s.offset)
+			if segmentEl.DataSize < s.offset+el.DataSize {
+				el.DataSize = segmentEl.DataSize - s.offset
 			}
-			s.offset += el.DataSize.Size()
+			s.offset += el.DataSize
 		}
 		switch el.ID {
 		default:
-			if _, err := d.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
+			if _, err := d.Seek(el.DataSize, io.SeekCurrent); err != nil {
 				s.err = fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 				return false
 			}
@@ -156,7 +156,7 @@ segment:
 	var offset int64
 	for {
 		el, n, err := s.decoder.NextOf(s.segmentEl, offset)
-		if s.segmentEl.DataSize.Known() {
+		if s.segmentEl.DataSize != -1 {
 			offset += int64(n)
 		}
 		if err == ebml.ErrInvalidVINTLength {
@@ -166,19 +166,19 @@ segment:
 		} else if err != nil {
 			return fmt.Errorf("matroska: could not decode element: %w", err)
 		}
-		if s.segmentEl.DataSize.Known() {
+		if s.segmentEl.DataSize != -1 {
 			// detect element overflow early to pretend the element is smaller
-			if s.segmentEl.DataSize.Size() < s.offset+el.DataSize.Size() {
-				el.DataSize = ebml.NewKnownDataSize(s.segmentEl.DataSize.Size() - s.offset)
+			if s.segmentEl.DataSize < s.offset+el.DataSize {
+				el.DataSize = s.segmentEl.DataSize - s.offset
 			}
-			offset += el.DataSize.Size()
+			offset += el.DataSize
 		}
 		if err := s.updateFSeek(el); err != nil {
 			return err
 		}
 		switch el.ID {
 		default:
-			if _, err := s.decoder.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
+			if _, err := s.decoder.Seek(el.DataSize, io.SeekCurrent); err != nil {
 				return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 			}
 			continue
@@ -230,7 +230,7 @@ segment:
 	cluster:
 		for {
 			el, n, err := s.decoder.Next()
-			if s.segmentEl.DataSize.Known() {
+			if s.segmentEl.DataSize != -1 {
 				offset += int64(n)
 			}
 			if err != nil {
@@ -239,16 +239,16 @@ segment:
 			if err := s.updateFSeek(el); err != nil {
 				return err
 			}
-			if s.segmentEl.DataSize.Known() {
+			if s.segmentEl.DataSize != -1 {
 				// detect element overflow early to pretend the element is smaller
-				if s.segmentEl.DataSize.Size() < s.offset+el.DataSize.Size() {
-					el.DataSize = ebml.NewKnownDataSize(s.segmentEl.DataSize.Size() - s.offset)
+				if s.segmentEl.DataSize < s.offset+el.DataSize {
+					el.DataSize = s.segmentEl.DataSize - s.offset
 				}
-				offset += el.DataSize.Size()
+				offset += el.DataSize
 			}
 			switch el.ID {
 			default:
-				if _, err := s.decoder.Seek(el.DataSize.Size(), io.SeekCurrent); err != nil {
+				if _, err := s.decoder.Seek(el.DataSize, io.SeekCurrent); err != nil {
 					return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 				}
 				continue

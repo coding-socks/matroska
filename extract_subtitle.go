@@ -22,53 +22,54 @@ func extractTrackSubtitle(w io.Writer, s *Scanner, t TrackEntry) error {
 
 func extractTrackSRT(w io.Writer, s *Scanner, t TrackEntry) error {
 	scale := s.Info().TimestampScale
-	var blocks []Block
+	var i int
 	for s.Next() {
 		c := s.Cluster()
-		m := len(c.SimpleBlock) + len(c.BlockGroup)
+		// Due to timing and duration, SRT only uses Block Groups
+		// > [...] Part 2 is used to set the timestamp of the Block, and BlockDuration element. [...]
+		m := len(c.BlockGroup)
 		if m == 0 {
 			continue
 		}
-		for i := range c.SimpleBlock {
-			block, err := NewBlock(c.SimpleBlock[i], c.Timestamp, scale, 0, BlockTypeSimpleBlock)
+		for _, b := range c.BlockGroup {
+			block, err := ReadBlock(b.Block, c.Timestamp)
 			if err != nil {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
-			if block.TrackNumber == int64(t.TrackNumber) {
-				blocks = append(blocks, block)
+			if block.TrackNumber() != t.TrackNumber {
+				continue
 			}
-		}
-		for i := range c.BlockGroup {
-			block, err := NewBlock(c.BlockGroup[i].Block, c.Timestamp, scale, time.Duration(*c.BlockGroup[i].BlockDuration), BlockTypeBlock)
-			if err != nil {
-				return fmt.Errorf("matroska: could not create block struct: %w", err)
+			start := block.Timestamp(scale)
+			var duration time.Duration
+			if b.BlockDuration != nil {
+				duration = time.Duration(*b.BlockDuration)
+			} else if t.DefaultDuration != nil {
+				duration = time.Duration(*t.DefaultDuration)
+			} else {
+				// TODO: https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-23.html#name-blockduration-element
+				//   If a value is not present and no DefaultDuration is defined, the value is assumed to be the difference between the timestamp of this Block and the timestamp of the next Block in "display" order (not coding order).
 			}
-			if block.TrackNumber == int64(t.TrackNumber) {
-				blocks = append(blocks, block)
+			end := block.Timestamp(scale) + duration*scale
+
+			var sb strings.Builder
+
+			sb.WriteString(strconv.Itoa(i + 1))
+			i++
+			sb.WriteRune('\n')
+			sb.WriteString(subRipTime(start))
+			sb.WriteString(" --> ")
+			sb.WriteString(subRipTime(end))
+			sb.WriteRune('\n')
+
+			if _, err := io.WriteString(w, sb.String()); err != nil {
+				return err
 			}
-		}
-	}
-	for i, block := range blocks {
-		start := block.Timestamp
-		end := block.Timestamp + block.Duration
-
-		var sb strings.Builder
-
-		sb.WriteString(strconv.Itoa(i + 1))
-		sb.WriteRune('\n')
-		sb.WriteString(subRipTime(start))
-		sb.WriteString(" --> ")
-		sb.WriteString(subRipTime(end))
-		sb.WriteRune('\n')
-
-		if _, err := io.WriteString(w, sb.String()); err != nil {
-			return err
-		}
-		if _, err := io.Copy(w, block.Data); err != nil {
-			return err
-		}
-		if _, err := w.Write([]byte("\n\n")); err != nil {
-			return err
+			if _, err := io.Copy(w, block.Data()); err != nil {
+				return err
+			}
+			if _, err := w.Write([]byte("\n\n")); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -88,73 +89,74 @@ func extractTrackSSA(w io.Writer, s *Scanner, t TrackEntry) error {
 	}
 
 	scale := s.Info().TimestampScale
-	var blocks []Block
+	var blocks []BlockGroup
+	f := subStationAlphaFormat(*t.CodecPrivate)
+	orderedEvents := make([]strings.Builder, len(blocks))
 	for s.Next() {
 		c := s.Cluster()
-		m := len(c.SimpleBlock) + len(c.BlockGroup)
+		// Due to timing and duration, SSA only uses Block Groups
+		// > Start & End field are used to set TimeStamp and the BlockDuration element.
+		m := len(c.BlockGroup)
 		if m == 0 {
 			continue
 		}
-		for i := range c.SimpleBlock {
-			block, err := NewBlock(c.SimpleBlock[i], c.Timestamp, scale, 0, BlockTypeSimpleBlock)
+		for _, b := range c.BlockGroup {
+			block, err := ReadBlock(b.Block, c.Timestamp)
 			if err != nil {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
-			if block.TrackNumber == int64(t.TrackNumber) {
-				blocks = append(blocks, block)
+			if block.TrackNumber() != t.TrackNumber {
+				continue
 			}
-		}
-		for i := range c.BlockGroup {
-			block, err := NewBlock(c.BlockGroup[i].Block, c.Timestamp, scale, time.Duration(*c.BlockGroup[i].BlockDuration), BlockTypeBlock)
+			start := block.Timestamp(scale)
+			var duration time.Duration
+			if b.BlockDuration != nil {
+				duration = time.Duration(*b.BlockDuration)
+			} else if t.DefaultDuration != nil {
+				duration = time.Duration(*t.DefaultDuration)
+			} else {
+				// TODO: https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-23.html#name-blockduration-element
+				//   If a value is not present and no DefaultDuration is defined, the value is assumed to be the difference between the timestamp of this Block and the timestamp of the next Block in "display" order (not coding order).
+			}
+			end := block.Timestamp(scale) + duration*scale
+
+			var sb strings.Builder
+
+			sb.WriteString("Dialogue: ")
+
+			b, _ := io.ReadAll(block.Data())
+			n := len(f) + 1 // data starts with line number
+			for i := range f {
+				switch f[i] {
+				case "marked", "start", "end":
+					n--
+				}
+			}
+			fields := strings.SplitN(string(b), ",", n)
+			fieldIndex := 1 // data starts with line number
+			for i := range f {
+				if i > 0 {
+					sb.WriteRune(',')
+				}
+				switch f[i] {
+				case "marked":
+					sb.WriteString(fmt.Sprintf("Marked=%d", 0))
+				case "start":
+					sb.WriteString(subStationAlphaTime(start))
+				case "end":
+					sb.WriteString(subStationAlphaTime(end))
+				default:
+					sb.WriteString(fields[fieldIndex])
+					fieldIndex++
+				}
+			}
+			i, err := strconv.Atoi(fields[0])
 			if err != nil {
-				return fmt.Errorf("matroska: could not create block struct: %w", err)
+				return fmt.Errorf("matroska: could read SubStation Alpha line number: %w", err)
 			}
-			if block.TrackNumber == int64(t.TrackNumber) {
-				blocks = append(blocks, block)
-			}
+			orderedEvents[i] = sb
 		}
-	}
-	f := subStationAlphaFormat(*t.CodecPrivate)
-	orderedEvents := make([]strings.Builder, len(blocks))
-	for _, block := range blocks {
-		start := block.Timestamp
-		end := block.Timestamp + block.Duration
-
-		var sb strings.Builder
-
-		sb.WriteString("Dialogue: ")
-
-		b, _ := io.ReadAll(block.Data)
-		n := len(f) + 1 // data starts with line number
-		for i := range f {
-			switch f[i] {
-			case "marked", "start", "end":
-				n--
-			}
-		}
-		fields := strings.SplitN(string(b), ",", n)
-		fieldIndex := 1 // data starts with line number
-		for i := range f {
-			if i > 0 {
-				sb.WriteRune(',')
-			}
-			switch f[i] {
-			case "marked":
-				sb.WriteString(fmt.Sprintf("Marked=%d", 0))
-			case "start":
-				sb.WriteString(subStationAlphaTime(start))
-			case "end":
-				sb.WriteString(subStationAlphaTime(end))
-			default:
-				sb.WriteString(fields[fieldIndex])
-				fieldIndex++
-			}
-		}
-		i, err := strconv.Atoi(fields[0])
-		if err != nil {
-			return fmt.Errorf("matroska: could read SubStation Alpha line number: %w", err)
-		}
-		orderedEvents[i] = sb
+		blocks = append(blocks, c.BlockGroup...)
 	}
 	for i := range orderedEvents {
 		if _, err := w.Write(append([]byte(orderedEvents[i].String()), '\n')); err != nil {
