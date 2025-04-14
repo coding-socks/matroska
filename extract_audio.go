@@ -14,7 +14,6 @@ func extractTrackAudio(w io.Writer, s *Scanner, t TrackEntry) error {
 }
 
 func extractTrackMPEG(w io.Writer, s *Scanner, t TrackEntry) error {
-	var blocks []block
 	for s.Next() {
 		c := s.Cluster()
 		m := len(c.SimpleBlock) + len(c.BlockGroup)
@@ -27,7 +26,9 @@ func extractTrackMPEG(w io.Writer, s *Scanner, t TrackEntry) error {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
 			if block.TrackNumber() == t.TrackNumber {
-				blocks = append(blocks, block)
+				if _, err := io.Copy(w, block.Data()); err != nil {
+					return err
+				}
 			}
 		}
 		for i := range c.BlockGroup {
@@ -36,13 +37,10 @@ func extractTrackMPEG(w io.Writer, s *Scanner, t TrackEntry) error {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
 			if block.TrackNumber() == t.TrackNumber {
-				blocks = append(blocks, block)
+				if _, err := io.Copy(w, block.Data()); err != nil {
+					return err
+				}
 			}
-		}
-	}
-	for _, block := range blocks {
-		if _, err := io.Copy(w, block.Data()); err != nil {
-			return err
 		}
 	}
 	return nil

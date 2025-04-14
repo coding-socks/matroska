@@ -2,11 +2,9 @@ package cli
 
 import (
 	"errors"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"os"
 )
-
-var SpinnerCharSet = []string{"[       ]", "[=      ]", "[==     ]", "[===    ]", "[====   ]", "[ ====  ]", "[  ==== ]", "[   ====]", "[    ===]", "[     ==]", "[      =]"}
 
 type Command struct {
 	Flags *flag.FlagSet
@@ -14,12 +12,8 @@ type Command struct {
 }
 
 // ValidatorFile only allows file paths
-func ValidatorFile(val interface{}) error {
-	p, ok := val.(string)
-	if !ok {
-		panic("cli: validator only applies to string values")
-	}
-	s, err := os.Stat(p)
+func ValidatorFile(val string) error {
+	s, err := os.Stat(val)
 	if os.IsNotExist(err) {
 		return errors.New("Path has to represent an existing file")
 	}
@@ -30,12 +24,8 @@ func ValidatorFile(val interface{}) error {
 }
 
 // ValidatorDir only allows directory paths
-func ValidatorDir(val interface{}) error {
-	p, ok := val.(string)
-	if !ok {
-		panic("cli: validator only applies to string values")
-	}
-	s, err := os.Stat(p)
+func ValidatorDir(val string) error {
+	s, err := os.Stat(val)
 	if os.IsNotExist(err) {
 		return errors.New("Path has to represent an existing dir")
 	}

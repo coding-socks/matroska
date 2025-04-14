@@ -89,10 +89,10 @@ func (s *Scanner) Next() bool {
 	segmentEl := s.segmentEl
 	for {
 		el, n, err := d.NextOf(segmentEl, s.offset)
-		if segmentEl.DataSize != -1 {
-			s.offset += int64(n)
-		}
-		if err == ebml.ErrInvalidVINTLength {
+		s.offset += int64(n)
+		if errors.Is(err, ebml.ErrInvalidVINTLength) {
+			d.Seek(1, io.SeekCurrent)
+			s.offset += 1
 			continue
 		} else if err == io.EOF {
 			return false
@@ -159,7 +159,9 @@ segment:
 		if s.segmentEl.DataSize != -1 {
 			offset += int64(n)
 		}
-		if err == ebml.ErrInvalidVINTLength {
+		if errors.Is(err, ebml.ErrInvalidVINTLength) {
+			s.decoder.Seek(1, io.SeekCurrent)
+			offset += 1
 			continue
 		} else if err == io.EOF {
 			return io.ErrUnexpectedEOF

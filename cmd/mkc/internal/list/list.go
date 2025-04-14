@@ -2,14 +2,13 @@ package list
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/charmbracelet/huh"
 	"github.com/coding-socks/ebml"
 	"github.com/coding-socks/ebml/ebmltext"
 	"github.com/coding-socks/matroska"
 	"github.com/coding-socks/matroska/cmd/mkc/internal/cli"
+	flag "github.com/spf13/pflag"
 	"io"
 	"log"
 	"os"
@@ -33,18 +32,18 @@ func run(flags *flag.FlagSet) {
 	args := arguments{
 		Input: flags.Arg(0),
 	}
-	var questions []*survey.Question
 	if args.Input == "" {
-		questions = append(questions, &survey.Question{
-			Name:     "input",
-			Prompt:   &survey.Input{Message: "Source matroska file:"},
-			Validate: survey.ComposeValidators(survey.Required, cli.ValidatorFile),
-		})
-	}
-	if err := survey.Ask(questions, &args); errors.Is(err, terminal.InterruptErr) {
-		return
-	} else if err != nil {
-		log.Fatal(err)
+		err := huh.NewInput().
+			Title("Source matroska file:").
+			Prompt("?").
+			Validate(cli.ValidatorFile).
+			Value(&args.Input).
+			Run()
+		if errors.Is(err, huh.ErrUserAborted) {
+			return
+		} else if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	f, err := os.Open(args.Input)

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/charmbracelet/huh"
 	"github.com/coding-socks/matroska/cmd/mkc/internal/cli"
 	"github.com/coding-socks/matroska/cmd/mkc/internal/extract"
 	"github.com/coding-socks/matroska/cmd/mkc/internal/list"
@@ -23,18 +23,19 @@ func main() {
 	mode := flag.Arg(0)
 
 	if mode == "" {
-		options := make([]string, len(commands))
+		options := make([]huh.Option[string], len(commands))
 		for i := range commands {
-			options[i] = commands[i].Flags.Name()
+			options[i] = huh.NewOption(commands[i].Flags.Name(), commands[i].Flags.Name())
 		}
-		modeSelector := &survey.Select{
-			Message: "Choose a mode:",
-			Options: options,
+		err := huh.NewSelect[string]().
+			Title("Choose a mode:").
+			Options(options...).
+			Value(&mode).
+			Run()
+		if errors.Is(err, huh.ErrUserAborted) {
+			return
 		}
-		if err := survey.AskOne(modeSelector, &mode); err != nil {
-			if err == terminal.InterruptErr {
-				return
-			}
+		if err != nil {
 			log.Fatal(err)
 		}
 	}
