@@ -89,9 +89,8 @@ func extractTrackSSA(w io.Writer, s *Scanner, t TrackEntry) error {
 	}
 
 	scale := s.Info().TimestampScale
-	var blocks []BlockGroup
 	f := subStationAlphaFormat(*t.CodecPrivate)
-	orderedEvents := make([]strings.Builder, len(blocks))
+	events := make([]string, 0, (1<<9)-1)
 	for s.Next() {
 		c := s.Cluster()
 		// Due to timing and duration, SSA only uses Block Groups
@@ -154,16 +153,32 @@ func extractTrackSSA(w io.Writer, s *Scanner, t TrackEntry) error {
 			if err != nil {
 				return fmt.Errorf("matroska: could read SubStation Alpha line number: %w", err)
 			}
-			orderedEvents[i] = sb
+			events = grow(i, events)
+			events[i] = sb.String()
 		}
-		blocks = append(blocks, c.BlockGroup...)
 	}
-	for i := range orderedEvents {
-		if _, err := w.Write(append([]byte(orderedEvents[i].String()), '\n')); err != nil {
+	for i := range events {
+		if _, err := w.Write(append([]byte(events[i]), '\n')); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func grow(i int, events []string) []string {
+	if l := i + 1; l > len(events) {
+		if l > cap(events) {
+			n := cap(events)
+			for l > cap(events) {
+				n = (n << 1) + 1
+			}
+			tmp := make([]string, n)
+			copy(tmp, events)
+			events = tmp
+		}
+		events = events[:l]
+	}
+	return events
 }
 
 func subStationAlphaTime(d time.Duration) string {
