@@ -38,13 +38,56 @@ const (
 	SimpleBlockFlagLacing      uint8 = 0b00000110
 	SimpleBlockFlagDiscardable uint8 = 0b00000001
 
-	lacingFlagNo        uint8 = 0b00000000
-	lacingFlagXiph      uint8 = 0b00000010
-	lacingFlagEBML      uint8 = 0b00000110
-	lacingFlagFixedSize uint8 = 0b00000100
+	LacingFlagNo        uint8 = 0b00000000
+	LacingFlagXiph      uint8 = 0b00000010
+	LacingFlagEBML      uint8 = 0b00000110
+	LacingFlagFixedSize uint8 = 0b00000100
 )
 
-// Block implements block structure according to Section 6.2.3 of draft-ietf-cellar-matroska-07
+// Frames implements block lacing according to Section 10.3 of rfc9559
+// https://datatracker.ietf.org/doc/html/rfc9559#name-block-lacing
+func Frames(flags uint8, data []byte) [][]byte {
+	if flags == LacingFlagNo {
+		return [][]byte{data}
+	}
+	n := data[0]
+	frames := make([][]byte, int(n)+1)
+	sizes := make([]uint64, int(n))
+	data = data[1:]
+	switch flags & BlockFlagLacing {
+	case LacingFlagXiph:
+		for i, j := 0, 0; j < len(sizes); i++ {
+			sizes[j] += uint64(data[0])
+			if data[0] != 0xff {
+				j++
+			}
+			data = data[1:]
+		}
+	case LacingFlagEBML:
+		ds, m, _ := ebmltext.ReadVintData(data)
+		data = data[m:]
+		sizes[0] = ds
+		for i := 1; i < len(sizes); i++ {
+			ds, m, _ := ebmltext.ReadVintData(data)
+			s := int64(ds)
+			s -= (1 << (7*m - 1)) - 1
+			data = data[m:]
+			sizes[i] = uint64(int64(sizes[i-1]) + s)
+		}
+	case LacingFlagFixedSize:
+		for i := 0; i < len(sizes); i++ {
+			sizes[i] = uint64(len(data) / len(frames))
+		}
+	}
+	for i, size := range sizes {
+		frames[i] = data[:size]
+		data = data[size:]
+	}
+	frames[len(frames)-1] = data
+	return frames
+}
+
+// Block implements block structure according to Section 10.1 of rfc9559
 // https://datatracker.ietf.org/doc/html/rfc9559#name-block-structure
 type Block struct {
 	trackNumber uint
@@ -88,47 +131,10 @@ func (b Block) Data() io.Reader {
 }
 
 func (b Block) Frames() [][]byte {
-	if b.flags&BlockFlagLacing == lacingFlagNo {
-		return [][]byte{b.data}
-	}
-	n := b.data[0]
-	frames := make([][]byte, int(n)+1)
-	sizes := make([]int64, int(n))
-	data := b.data[1:]
-	switch b.flags & BlockFlagLacing {
-	case lacingFlagXiph:
-		for i, j := 0, 0; j < len(sizes); i++ {
-			sizes[j] += int64(data[0])
-			data = data[1:]
-			if data[0] != 0xff {
-				j++
-			}
-		}
-	case lacingFlagEBML:
-		r := bytes.NewReader(data)
-		ds, m, _ := ebml.ReadElementDataSize(r, 8)
-		data = data[m:]
-		sizes[0] = ds
-		for i := 1; i < len(sizes); i++ {
-			ds, m, _ := ebml.ReadElementDataSize(r, 8)
-			data = data[m:]
-			ds -= (1 << (7*m - 1)) - 1
-			sizes[i] = sizes[i-1] + ds
-		}
-	case lacingFlagFixedSize:
-		for i := 0; i < len(sizes); i++ {
-			sizes[i] = int64(len(data) / len(frames))
-		}
-	}
-	for i, size := range sizes {
-		frames[i] = data[:size]
-		data = data[size:]
-	}
-	frames[len(frames)-1] = data
-	return frames
+	return Frames(b.flags&BlockFlagLacing, b.data)
 }
 
-// SimpleBlock implements block structure according to Section 10.2 of draft-ietf-cellar-matroska-21
+// SimpleBlock implements block structure according to Section 10.2 of rfc9559
 // https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-simpleblock-structure
 type SimpleBlock struct {
 	trackNumber uint
@@ -171,10 +177,8 @@ func (b SimpleBlock) Data() io.Reader {
 	return bytes.NewReader(b.data)
 }
 
-func (b SimpleBlock) Frames() {
-	if b.flags&SimpleBlockFlagLacing == 0 {
-
-	}
+func (b SimpleBlock) Frames() [][]byte {
+	return Frames(b.flags&SimpleBlockFlagLacing, b.data)
 }
 
 func ExtractTract(w io.Writer, s *Scanner, t TrackEntry) error {

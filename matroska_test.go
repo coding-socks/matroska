@@ -1,12 +1,14 @@
 package matroska
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/coding-socks/ebml"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -135,6 +137,78 @@ func TestDecode(t *testing.T) {
 				t.Errorf("len(DecodeBody().Cluster) got = %v, want %v", got, tt.wantClusterLen)
 			}
 			fmt.Printf("%+v\n", len(b.Cluster))
+		})
+	}
+}
+
+func TestFrames(t *testing.T) {
+	type args struct {
+		lacing uint8
+		data   []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want [][]byte
+	}{
+		{
+			name: "Lacing No",
+			args: args{lacing: LacingFlagNo, data: []byte{0x01, 0x02, 0x03, 0x04}},
+			want: [][]byte{{0x01, 0x02, 0x03, 0x04}},
+		},
+		{
+			name: "Lacing Xiph",
+			args: args{lacing: LacingFlagXiph, data: bytes.Join([][]byte{
+				{0x02},
+				{0xFF, 0xFF, 0xFF, 0x23},
+				{0xFF, 0xF5},
+				bytes.Repeat([]byte{0xFF}, 800),
+				bytes.Repeat([]byte{0xFE}, 500),
+				bytes.Repeat([]byte{0xFD}, 1000),
+			}, nil)},
+			want: [][]byte{
+				bytes.Repeat([]byte{0xFF}, 800),
+				bytes.Repeat([]byte{0xFE}, 500),
+				bytes.Repeat([]byte{0xFD}, 1000),
+			},
+		},
+		{
+			name: "Lacing EBML",
+			args: args{lacing: LacingFlagEBML, data: bytes.Join([][]byte{
+				{0x02},
+				{0x43, 0x20},
+				{0x5E, 0xD3},
+				bytes.Repeat([]byte{0xFF}, 800),
+				bytes.Repeat([]byte{0xFE}, 500),
+				bytes.Repeat([]byte{0xFD}, 1000),
+			}, nil)},
+			want: [][]byte{
+				bytes.Repeat([]byte{0xFF}, 800),
+				bytes.Repeat([]byte{0xFE}, 500),
+				bytes.Repeat([]byte{0xFD}, 1000),
+			},
+		},
+		{
+			name: "Lacing Fixed",
+			args: args{lacing: LacingFlagFixedSize, data: bytes.Join([][]byte{
+				{0x02},
+				bytes.Repeat([]byte{0xFF}, 800),
+				bytes.Repeat([]byte{0xFE}, 800),
+				bytes.Repeat([]byte{0xFD}, 800),
+			}, nil)},
+			want: [][]byte{
+				bytes.Repeat([]byte{0xFF}, 800),
+				bytes.Repeat([]byte{0xFE}, 800),
+				bytes.Repeat([]byte{0xFD}, 800),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Frames(tt.args.lacing, tt.args.data)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Frames() = %x,\nwant %x", got, tt.want)
+			}
 		})
 	}
 }
