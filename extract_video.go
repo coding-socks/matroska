@@ -27,18 +27,20 @@ func extractTrackMSCOMP(w io.Writer, s *Scanner, t TrackEntry) error {
 			if err != nil {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
-			if block.TrackNumber() == t.TrackNumber {
-				blocks = append(blocks, block)
+			if block.TrackNumber() != t.TrackNumber {
+				continue
 			}
+			blocks = append(blocks, block)
 		}
 		for i := range c.BlockGroup {
 			block, err := ReadBlock(c.BlockGroup[i].Block, c.Timestamp)
 			if err != nil {
 				return fmt.Errorf("matroska: could not create block struct: %w", err)
 			}
-			if block.TrackNumber() == t.TrackNumber {
-				blocks = append(blocks, block)
+			if block.TrackNumber() != t.TrackNumber {
+				continue
 			}
+			blocks = append(blocks, block)
 		}
 	}
 	_ = scale
