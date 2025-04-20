@@ -13,7 +13,7 @@ jobs:
   test-generated-files:
     runs-on: ubuntu-latest
 
-    name: "Test generated files are up to date"
+    name: "Run basic tests"
 
     steps:
       - uses: actions/checkout@v4
