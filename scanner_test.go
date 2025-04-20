@@ -8,6 +8,9 @@ import (
 )
 
 func TestScanner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	tests := []struct {
 		name     string
 		filename string
