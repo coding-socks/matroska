@@ -41,6 +41,9 @@ func downloadTestFile(filename, source string) error {
 }
 
 func TestDecode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	tests := []struct {
 		name     string
 		filename string
