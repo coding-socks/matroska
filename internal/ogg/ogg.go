@@ -207,7 +207,7 @@ func (d *Decoder) DecodeStreams() (map[uint32]Page, error) {
 		b = d.buf.Bytes()
 		clear(b[22:26])
 		if CRC32Checksum(b) != checksum {
-			fmt.Printf("ogg: invalid CRC32 checksum: %x\n", checksum)
+			return nil, fmt.Errorf("ogg: invalid CRC32 checksum: %x\n", checksum)
 		}
 		d.buf.Reset()
 		streams[p.SerialNum] = p
@@ -286,7 +286,7 @@ func (d *Decoder) DecodePage() (*Page, error) {
 	b = d.buf.Bytes()
 	clear(b[22:26])
 	if CRC32Checksum(b) != checksum {
-		fmt.Printf("ogg: invalid CRC32 checksum: %x\n", checksum)
+		return nil, fmt.Errorf("ogg: invalid CRC32 checksum: %x\n", checksum)
 	}
 	if b[5] == HeaderTypeLastPage {
 		delete(d.serials, p.SerialNum)
