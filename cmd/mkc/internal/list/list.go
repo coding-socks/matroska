@@ -118,6 +118,8 @@ func (v printVisitor) Visit(el ebml.Element, offset int64, headerSize int, val a
 		}
 	}
 
+	var lastTrackNumber uint = 0
+
 	switch el.ID {
 	default:
 		switch sch.Type {
@@ -165,7 +167,14 @@ func (v printVisitor) Visit(el ebml.Element, offset int64, headerSize int, val a
 		case uint:
 			i = int64(v)
 		}
-		trackTimestampScale := v.s.Tracks().TrackEntry[0].TrackTimestampScale // TODO: get proper value
+		// TODO: validate if this would work. I may need the whole BlockGroup.
+		trackTimestampScale := 1.0
+		for _, te := range v.s.Tracks().TrackEntry {
+			if te.TrackNumber == lastTrackNumber {
+				trackTimestampScale = te.TrackTimestampScale
+				break
+			}
+		}
 		d := time.Duration(float64(i) * float64(timestampScale) * trackTimestampScale)
 		v.printer.Printf("%s: %s%s", sch.Name, d, v.suffix.String())
 	case matroska.IDBlock:
@@ -187,6 +196,8 @@ func (v printVisitor) Visit(el ebml.Element, offset int64, headerSize int, val a
 			frameOffset += int64(len(f))
 		}
 		v.printer.Sub(1)
+
+		lastTrackNumber = block.TrackNumber()
 	case matroska.IDSimpleBlock:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-simpleblock-structure
 		timestampScale := v.s.Info().TimestampScale
