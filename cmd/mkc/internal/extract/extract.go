@@ -77,7 +77,7 @@ func run(flags *flag.FlagSet) {
 	err = spinner.New().
 		Title("Loading file into memory").
 		Action(func() {
-			s, actionErr = matroska.NewScanner(f)
+			s = matroska.NewScanner(f)
 		}).
 		Run()
 	if errors.Is(err, huh.ErrUserAborted) {
@@ -86,9 +86,6 @@ func run(flags *flag.FlagSet) {
 		log.Fatal(err)
 	}
 
-	if err = actionErr; err != nil {
-		log.Fatal(err)
-	}
 	tracks := s.Tracks()
 	if len(args.Tracks) == 0 {
 		options := make([]huh.Option[uint], len(tracks.TrackEntry))

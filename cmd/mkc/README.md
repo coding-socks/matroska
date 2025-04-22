@@ -1,4 +1,4 @@
-# Matroska Command
+# Matroska CLI
 
 A CLI tool to inspect Matroska files. The tool is written in Go.
 
@@ -8,7 +8,7 @@ A CLI tool to inspect Matroska files. The tool is written in Go.
 
 ## Introduction
 
-`mkc` stands for "Matroska Command". The name of the command follows the logic of the extension naming used for Matroska files. The most used extensions are `mkv` "Matroska Video", `mka` "Matroska Audio", and `mks` "Matroska Subtitle".
+`mkc` stands for "Matroska CLI". The name of the command follows the logic of the extension naming used for Matroska files. The most used extensions are `mkv` "Matroska Video", `mka` "Matroska Audio", and `mks` "Matroska Subtitle".
 
 This library is based on the version of [RFC 9559][rfc9559] and the 10th iteration of [draft-ietf-cellar-codec][draft-ietf-cellar-codec-14]. None of these documents reached ["Internet Standard"](https://datatracker.ietf.org/html/rfc2026#section-4.1.3) status yet.
 
