@@ -1,6 +1,7 @@
 package matroska
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/coding-socks/matroska/internal/vorbis"
 	"io"
@@ -32,8 +33,10 @@ func extractTrackMPEG(w io.Writer, s *Scanner, t TrackEntry) error {
 			if block.TrackNumber() != t.TrackNumber {
 				continue
 			}
-			if _, err := io.Copy(w, block.Data()); err != nil {
-				return err
+			for _, f := range block.Frames() {
+				if _, err := io.Copy(w, bytes.NewReader(f)); err != nil {
+					return err
+				}
 			}
 		}
 		for i := range c.BlockGroup {
@@ -44,8 +47,10 @@ func extractTrackMPEG(w io.Writer, s *Scanner, t TrackEntry) error {
 			if block.TrackNumber() != t.TrackNumber {
 				continue
 			}
-			if _, err := io.Copy(w, block.Data()); err != nil {
-				return err
+			for _, f := range block.Frames() {
+				if _, err := io.Copy(w, bytes.NewReader(f)); err != nil {
+					return err
+				}
 			}
 		}
 	}
