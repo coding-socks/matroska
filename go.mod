@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/charmbracelet/huh v0.6.0
 	github.com/charmbracelet/huh/spinner v0.0.0-20250410174039-76d1f8226680
-	github.com/coding-socks/ebml v0.0.0-20250413191753-908e87a1adf5
+	github.com/coding-socks/ebml v0.0.0-20250420185432-fb92145e777f
 	github.com/spf13/pflag v1.0.6
 	golang.org/x/tools v0.32.0
 )

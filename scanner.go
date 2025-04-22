@@ -26,6 +26,8 @@ type Scanner struct {
 	info     *Info
 	tracks   *Tracks
 	seekHead *SeekHead
+
+	SeekDisabled bool
 	// fSeekHead is an attempt to recreate SeekHead in case it is missing.
 	fSeekHead *SeekHead
 
@@ -34,43 +36,56 @@ type Scanner struct {
 	err     error
 }
 
-func NewScanner(r io.ReadSeeker) (*Scanner, error) {
+func NewScanner(r io.ReadSeeker) *Scanner {
 	d := ebml.NewDecoder(r)
-	h, err := d.DecodeHeader()
-	if err != nil {
-		return nil, fmt.Errorf("matroska: could not decode header: %w", err)
+	s := Scanner{
+		decoder: d,
 	}
+	return &s
+}
+
+func (s *Scanner) Decoder() *ebml.Decoder {
+	return s.decoder
+}
+
+func (s *Scanner) Init() error {
+	if s.err != nil || s.header != nil {
+		return s.err
+	}
+	h, err := s.decoder.DecodeHeader()
+	if err != nil {
+		return fmt.Errorf("matroska: could not decode header: %w", err)
+	}
+	s.header = h
 	if h.DocType != DocType {
-		return nil, fmt.Errorf("matroska: cannot decode DocType: %v", h.DocType)
+		return fmt.Errorf("matroska: cannot decode DocType: %v", h.DocType)
 	}
 	def, err := ebml.Definition(h.DocType)
 	if err != nil {
 		panic("matroska: document type is not registered")
 	}
-	s := Scanner{
-		decoder: d,
-		header:  h,
-
-		fSeekHead: &SeekHead{},
-	}
+	s.fSeekHead = &SeekHead{}
 	if err := s.init(def); err != nil {
-		return nil, err
+		return err
 	}
-	return &s, nil
+	return nil
 }
 
 // Header returns the ebml.EBML element of the matroska document
 func (s *Scanner) Header() *ebml.EBML {
+	s.err = s.Init()
 	return s.header
 }
 
 // Info returns the Info element of the matroska document.
 func (s *Scanner) Info() *Info {
+	s.err = s.Init()
 	return s.info
 }
 
 // Tracks returns the Tracks element of the matroska document.
 func (s *Scanner) Tracks() *Tracks {
+	s.err = s.Init()
 	return s.tracks
 }
 
@@ -78,13 +93,21 @@ func (s *Scanner) Tracks() *Tracks {
 // or a constructed version of it. The second return value is false
 // when it cannot be trusted because it is constructed.
 func (s *Scanner) SeekHead() (*SeekHead, bool) {
+	s.err = s.Init()
 	if s.seekHead == nil {
 		return s.fSeekHead, false
 	}
 	return s.seekHead, true
 }
 
+// Next reads the next Cluster struct from the io.Reader.
+//
+// The cluster is accessible by calling Cluster.
 func (s *Scanner) Next() bool {
+	s.err = s.Init()
+	if s.err != nil {
+		return false
+	}
 	d := s.decoder
 	segmentEl := s.segmentEl
 	for {
@@ -94,6 +117,11 @@ func (s *Scanner) Next() bool {
 			d.Seek(1, io.SeekCurrent)
 			s.offset += 1
 			continue
+		} else if errors.Is(err, ebml.ErrElementOverflow) {
+			// detect element overflow early to pretend the element is smaller
+			if segmentEl.DataSize < s.offset+el.DataSize {
+				el.DataSize = segmentEl.DataSize - s.offset
+			}
 		} else if err == io.EOF {
 			return false
 		} else if err != nil {
@@ -101,10 +129,6 @@ func (s *Scanner) Next() bool {
 			return false
 		}
 		if segmentEl.DataSize != -1 {
-			// detect element overflow early to pretend the element is smaller
-			if segmentEl.DataSize < s.offset+el.DataSize {
-				el.DataSize = segmentEl.DataSize - s.offset
-			}
 			s.offset += el.DataSize
 		}
 		switch el.ID {
@@ -116,8 +140,10 @@ func (s *Scanner) Next() bool {
 		case IDCluster:
 			var cl Cluster
 			if err := d.Decode(&cl); err != nil {
-				s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
-				return err == ebml.ErrElementOverflow
+				if !errors.Is(err, ebml.ErrElementOverflow) {
+					s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
+					return false
+				}
 			}
 			s.cluster = cl
 			return true
@@ -125,10 +151,12 @@ func (s *Scanner) Next() bool {
 	}
 }
 
+// Cluster returns the latest Cluster struct read from the io.Reader.
 func (s *Scanner) Cluster() Cluster {
 	return s.cluster
 }
 
+// Err returns any errors detected while reading the io.Reader.
 func (s *Scanner) Err() error {
 	return s.err
 }
@@ -192,7 +220,7 @@ segment:
 			// There could be a second SeekHead element according to Section 6.3.
 			if s.seekHead == nil {
 				s.seekHead = sh
-				if o, found := s.seekTo(IDSeekHead, 0); found {
+				if o, found := s.seekTo(IDSeekHead, 0); !s.SeekDisabled && found {
 					offset = o
 					continue
 				}
@@ -213,11 +241,11 @@ segment:
 			return ErrUnexpectedClusterElement
 		}
 
-		if s.seekHead != nil && s.info == nil {
+		if !s.SeekDisabled && s.seekHead != nil && s.info == nil {
 			offset, _ = s.seekTo(IDInfo, 0)
 			continue
 		}
-		if s.seekHead != nil && s.tracks == nil {
+		if !s.SeekDisabled && s.seekHead != nil && s.tracks == nil {
 			offset, _ = s.seekTo(IDTracks, 0)
 			continue
 		}
@@ -225,7 +253,7 @@ segment:
 			break
 		}
 	}
-	if s.seekHead != nil {
+	if !s.SeekDisabled && s.seekHead != nil {
 		offset, _ = s.seekTo(IDCluster, 0)
 	} else {
 		// find cluster element

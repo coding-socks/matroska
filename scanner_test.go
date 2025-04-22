@@ -1,7 +1,6 @@
 package matroska
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -65,7 +64,6 @@ func TestScanner(t *testing.T) {
 			name:     "Extra unknown/junk elements & damaged",
 			filename: "test7.mkv",
 			source:   "https://github.com/Matroska-Org/matroska-test-files/blob/master/test_files/test7.mkv?raw=true",
-			wantErr:  true,
 
 			wantClusterLen: 37,
 		},
@@ -92,14 +90,7 @@ func TestScanner(t *testing.T) {
 				}
 			}
 			defer f.Close()
-			s, err := NewScanner(f)
-			if err != nil {
-				t.Fatal(err)
-			}
-			fmt.Printf("%+v\n", s.Info())
-			fmt.Printf("%+v\n", s.Tracks())
-			seekHead, ok := s.SeekHead()
-			fmt.Printf("%+v, %+v\n", ok, seekHead)
+			s := NewScanner(f)
 			var cluster []Cluster
 			for s.Next() {
 				cluster = append(cluster, s.Cluster())
@@ -110,7 +101,6 @@ func TestScanner(t *testing.T) {
 			if got := len(cluster); got != tt.wantClusterLen {
 				t.Errorf("len(Cluster) got = %v, want %v", got, tt.wantClusterLen)
 			}
-			//fmt.Printf("%+v\n", len(b.Cluster))
 		})
 	}
 }
