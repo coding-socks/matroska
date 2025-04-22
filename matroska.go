@@ -54,7 +54,7 @@ func Frames(flags uint8, data []byte) [][]byte {
 	frames := make([][]byte, int(n)+1)
 	sizes := make([]uint64, int(n))
 	data = data[1:]
-	switch flags & BlockFlagLacing {
+	switch flags {
 	case LacingFlagXiph:
 		for i, j := 0, 0; j < len(sizes); i++ {
 			sizes[j] += uint64(data[0])
