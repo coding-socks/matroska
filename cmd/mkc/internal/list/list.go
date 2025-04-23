@@ -202,7 +202,6 @@ func (v printVisitor) Visit(el ebml.Element, offset int64, headerSize int, val a
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-simpleblock-structure
 		timestampScale := v.s.Info().TimestampScale
 		b := val.([]byte)
-		v.printer.Printf("%s%s", sch.Name, v.suffix.String())
 		block, _ := matroska.ReadSimpleBlock(b, timestampScale)
 		frames := block.Frames()
 		v.printer.Printf("%s: track number %d, %d frame(s), timestamp %v%s", sch.Name,
