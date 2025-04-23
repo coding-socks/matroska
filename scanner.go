@@ -27,7 +27,6 @@ type Scanner struct {
 	tracks   *Tracks
 	seekHead *SeekHead
 
-	SeekDisabled bool
 	// fSeekHead is an attempt to recreate SeekHead in case it is missing.
 	fSeekHead *SeekHead
 

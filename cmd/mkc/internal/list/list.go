@@ -56,8 +56,8 @@ func run(flags *flag.FlagSet) {
 		os.Exit(1)
 	}
 
-	s := matroska.NewScanner(f)
-	s.SeekDisabled = true
+	r := io.MultiReader(f) // remove seeking capability
+	s := matroska.NewScanner(r)
 
 	v := printVisitor{
 		w: os.Stdout,
