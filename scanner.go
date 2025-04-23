@@ -32,7 +32,7 @@ type Scanner struct {
 
 	offset       int64
 	cluster      Cluster
-	firstCluster *ebml.Element
+	firstCluster *Cluster
 	err          error
 }
 
@@ -108,35 +108,37 @@ func (s *Scanner) Next() bool {
 	if s.err != nil {
 		return false
 	}
+	if s.firstCluster != nil {
+		s.cluster = *s.firstCluster
+		s.firstCluster = nil
+		return true
+	}
+	return s.next()
+}
+
+func (s *Scanner) next() bool {
 	d := s.decoder
 	segmentEl := s.segmentEl
 	var offset int64 = 0
 	for {
-		var el ebml.Element
-		if s.firstCluster != nil {
-			el = *s.firstCluster
-			s.firstCluster = nil
-		} else {
-			nel, n, err := d.NextOf(segmentEl, offset)
-			if segmentEl.DataSize != -1 {
-				offset += int64(n)
+		el, n, err := d.NextOf(segmentEl, offset)
+		if segmentEl.DataSize != -1 {
+			offset += int64(n)
+		}
+		if errors.Is(err, ebml.ErrInvalidVINTLength) {
+			_ = d.SkipByte()
+			offset += 1
+			continue
+		} else if errors.Is(err, ebml.ErrElementOverflow) {
+			// detect element overflow early to pretend the element is smaller
+			if segmentEl.DataSize < offset+el.DataSize {
+				el.DataSize = segmentEl.DataSize - offset
 			}
-			if errors.Is(err, ebml.ErrInvalidVINTLength) {
-				_ = d.SkipByte()
-				offset += 1
-				continue
-			} else if errors.Is(err, ebml.ErrElementOverflow) {
-				// detect element overflow early to pretend the element is smaller
-				if segmentEl.DataSize < offset+nel.DataSize {
-					nel.DataSize = segmentEl.DataSize - offset
-				}
-			} else if err == io.EOF {
-				return false
-			} else if err != nil {
-				s.err = err
-				return false
-			}
-			el = nel
+		} else if err == io.EOF {
+			return false
+		} else if err != nil {
+			s.err = err
+			return false
 		}
 		if segmentEl.DataSize != -1 {
 			offset += el.DataSize
@@ -147,6 +149,47 @@ func (s *Scanner) Next() bool {
 				s.err = fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 				return false
 			}
+		case IDChapters: // TODO: populate chapters
+			if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
+				s.err = err
+				return false
+			}
+			var chapters Chapters
+			if err := s.decoder.Decode(el, &chapters); err != nil {
+				s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
+				return false
+			}
+		case IDCues: // TODO: populate cues
+			if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
+				s.err = err
+				return false
+			}
+			var cues Cues
+			if err := s.decoder.Decode(el, &cues); err != nil {
+				s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
+				return false
+			}
+		case IDAttachments: // TODO: populate attachments
+			if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
+				s.err = err
+				return false
+			}
+			var attachments Attachments
+			if err := s.decoder.Decode(el, &attachments); err != nil {
+				s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
+				return false
+			}
+		case IDTags: // TODO: populate tags
+			if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
+				s.err = err
+				return false
+			}
+			var tags Tags
+			if err := s.decoder.Decode(el, &tags); err != nil {
+				s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
+				return false
+			}
+
 		case IDCluster:
 			var cl Cluster
 			if err := d.Decode(el, &cl); err != nil {
@@ -278,60 +321,12 @@ segment:
 		}
 	}
 
-	// find cluster element
-cluster:
-	for {
-		el, n, err := s.decoder.NextOf(s.segmentEl, offset)
-		if s.segmentEl.DataSize != -1 {
-			offset += int64(n)
-		}
-		if errors.Is(err, ebml.ErrElementOverflow) {
-			// detect element overflow early to pretend the element is smaller
-			if s.segmentEl.DataSize < s.offset+el.DataSize {
-				el.DataSize = s.segmentEl.DataSize - s.offset
-			}
-		} else if err != nil {
-			return fmt.Errorf("matroska: %w", err)
-		}
-		if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
-			return err
-		}
-		if s.segmentEl.DataSize != -1 {
-			offset += el.DataSize
-		}
-		switch el.ID {
-		default:
-			if err := s.decoder.Skip(el); err != nil {
-				return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
-			}
-		case IDChapters:
-			var chapters Chapters
-			if err := s.decoder.Decode(el, &chapters); err != nil {
-				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
-			}
-		case IDCues:
-			var cues Cues
-			if err := s.decoder.Decode(el, &cues); err != nil {
-				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
-			}
-		case IDAttachments:
-			var attachments Attachments
-			if err := s.decoder.Decode(el, &attachments); err != nil {
-				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
-			}
-		case IDTags:
-			var tags Tags
-			if err := s.decoder.Decode(el, &tags); err != nil {
-				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
-			}
-
-		case IDCluster:
-			s.firstCluster = &el
-			break cluster // Done here
-		}
-	}
 	s.offset = offset
-	return nil
+	// find cluster element
+	_ = s.next()
+	cluster := s.Cluster()
+	s.firstCluster = &cluster
+	return s.err
 }
 
 func (s *Scanner) seekTo(seekID schema.ElementID, n int) (int64, bool) {
