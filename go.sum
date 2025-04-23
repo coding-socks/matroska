@@ -40,6 +40,8 @@ github.com/coding-socks/ebml v0.0.0-20250422170819-dc6ebdf21abd h1:nz+11xhFTaxZM
 github.com/coding-socks/ebml v0.0.0-20250422170819-dc6ebdf21abd/go.mod h1:6RUr58mWiQHHZiL2UFb8JygHNS5E35wGJfEmoSsDyI0=
 github.com/coding-socks/ebml v0.0.0-20250423152522-9ccc7122c118 h1:T63MS67JwXtfQzzG5op7gar+6nrHFaNIABFNGiygibE=
 github.com/coding-socks/ebml v0.0.0-20250423152522-9ccc7122c118/go.mod h1:6RUr58mWiQHHZiL2UFb8JygHNS5E35wGJfEmoSsDyI0=
+github.com/coding-socks/ebml v0.0.0-20250423185329-7aabf7e89ae9 h1:xCzC2gZ2uC1Fbh1tT1de6DHtGO/YOsEXlgpXik0kELU=
+github.com/coding-socks/ebml v0.0.0-20250423185329-7aabf7e89ae9/go.mod h1:6RUr58mWiQHHZiL2UFb8JygHNS5E35wGJfEmoSsDyI0=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6baUTXGLOoWe4PQhGxaX0KpnayAqC48p4=

@@ -218,7 +218,7 @@ func (s *Scanner) init(def *ebml.Def) error {
 	// find root element
 segment:
 	for {
-		el, _, err := s.decoder.Next()
+		el, _, err := s.decoder.NextOf(ebml.RootEl, 0)
 		if err != nil {
 			return fmt.Errorf("matroska: %w", err)
 		}
