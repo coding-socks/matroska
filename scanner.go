@@ -31,12 +31,13 @@ type Scanner struct {
 	// fSeekHead is an attempt to recreate SeekHead in case it is missing.
 	fSeekHead *SeekHead
 
-	offset  int64
-	cluster Cluster
-	err     error
+	offset       int64
+	cluster      Cluster
+	firstCluster *ebml.Element
+	err          error
 }
 
-func NewScanner(r io.ReadSeeker) *Scanner {
+func NewScanner(r io.Reader) *Scanner {
 	d := ebml.NewDecoder(r)
 	s := Scanner{
 		decoder: d,
@@ -110,36 +111,46 @@ func (s *Scanner) Next() bool {
 	}
 	d := s.decoder
 	segmentEl := s.segmentEl
+	var offset int64 = 0
 	for {
-		el, n, err := d.NextOf(segmentEl, s.offset)
-		s.offset += int64(n)
-		if errors.Is(err, ebml.ErrInvalidVINTLength) {
-			d.Seek(1, io.SeekCurrent)
-			s.offset += 1
-			continue
-		} else if errors.Is(err, ebml.ErrElementOverflow) {
-			// detect element overflow early to pretend the element is smaller
-			if segmentEl.DataSize < s.offset+el.DataSize {
-				el.DataSize = segmentEl.DataSize - s.offset
+		var el ebml.Element
+		if s.firstCluster != nil {
+			el = *s.firstCluster
+			s.firstCluster = nil
+		} else {
+			nel, n, err := d.NextOf(segmentEl, offset)
+			if segmentEl.DataSize != -1 {
+				offset += int64(n)
 			}
-		} else if err == io.EOF {
-			return false
-		} else if err != nil {
-			s.err = err
-			return false
+			if errors.Is(err, ebml.ErrInvalidVINTLength) {
+				_ = d.SkipByte()
+				offset += 1
+				continue
+			} else if errors.Is(err, ebml.ErrElementOverflow) {
+				// detect element overflow early to pretend the element is smaller
+				if segmentEl.DataSize < offset+nel.DataSize {
+					nel.DataSize = segmentEl.DataSize - offset
+				}
+			} else if err == io.EOF {
+				return false
+			} else if err != nil {
+				s.err = err
+				return false
+			}
+			el = nel
 		}
 		if segmentEl.DataSize != -1 {
-			s.offset += el.DataSize
+			offset += el.DataSize
 		}
 		switch el.ID {
 		default:
-			if _, err := d.Seek(el.DataSize, io.SeekCurrent); err != nil {
+			if err := d.Skip(el); err != nil {
 				s.err = fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 				return false
 			}
 		case IDCluster:
 			var cl Cluster
-			if err := d.Decode(&cl); err != nil {
+			if err := d.Decode(el, &cl); err != nil {
 				if !errors.Is(err, ebml.ErrElementOverflow) {
 					s.err = fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 					return false
@@ -179,7 +190,9 @@ segment:
 			break segment // Done here
 		}
 	}
-	s.segmentStart, _ = s.decoder.Seek(0, io.SeekCurrent)
+	if ss, ok := s.decoder.AsSeeker(); ok {
+		s.segmentStart, _ = ss.Seek(0, io.SeekCurrent)
+	}
 
 	var offset int64
 	for {
@@ -188,7 +201,7 @@ segment:
 			offset += int64(n)
 		}
 		if errors.Is(err, ebml.ErrInvalidVINTLength) {
-			s.decoder.Seek(1, io.SeekCurrent)
+			_ = s.decoder.SkipByte()
 			offset += 1
 			continue
 		} else if err == io.EOF {
@@ -203,24 +216,24 @@ segment:
 			}
 			offset += el.DataSize
 		}
-		if err := s.updateFSeek(el); err != nil {
+		if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
 			return err
 		}
 		switch el.ID {
 		default:
-			if _, err := s.decoder.Seek(el.DataSize, io.SeekCurrent); err != nil {
+			if err := s.decoder.Skip(el); err != nil {
 				return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 			}
 			continue
 		case IDSeekHead:
 			sh := &SeekHead{}
-			if err := s.decoder.Decode(sh); err != nil {
+			if err := s.decoder.Decode(el, sh); err != nil {
 				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
 			// There could be a second SeekHead element according to Section 6.3.
 			if s.seekHead == nil {
 				s.seekHead = sh
-				if o, found := s.seekTo(IDSeekHead, 0); !s.SeekDisabled && found {
+				if o, found := s.seekTo(IDSeekHead, 0); found {
 					offset = o
 					continue
 				}
@@ -229,65 +242,93 @@ segment:
 			}
 		case IDInfo:
 			s.info = &Info{}
-			if err := s.decoder.Decode(s.info); err != nil {
+			if err := s.decoder.Decode(el, s.info); err != nil {
 				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
 		case IDTracks:
 			s.tracks = &Tracks{}
-			if err := s.decoder.Decode(s.tracks); err != nil {
+			if err := s.decoder.Decode(el, s.tracks); err != nil {
 				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
 		case IDCluster:
 			return ErrUnexpectedClusterElement
 		}
 
-		if !s.SeekDisabled && s.seekHead != nil && s.info == nil {
-			offset, _ = s.seekTo(IDInfo, 0)
-			continue
+		if s.seekHead != nil && s.info == nil {
+			var ok bool
+			if offset, ok = s.seekTo(IDInfo, 0); ok {
+				continue
+			}
 		}
-		if !s.SeekDisabled && s.seekHead != nil && s.tracks == nil {
-			offset, _ = s.seekTo(IDTracks, 0)
-			continue
+		if s.seekHead != nil && s.tracks == nil {
+			var ok bool
+			if offset, ok = s.seekTo(IDTracks, 0); ok {
+				continue
+			}
 		}
 		if s.info != nil && s.tracks != nil {
 			break
 		}
 	}
-	if !s.SeekDisabled && s.seekHead != nil {
-		offset, _ = s.seekTo(IDCluster, 0)
-	} else {
-		// find cluster element
-	cluster:
-		for {
-			el, n, err := s.decoder.Next()
-			if s.segmentEl.DataSize != -1 {
-				offset += int64(n)
+
+	if s.seekHead != nil {
+		var ok bool
+		if offset, ok = s.seekTo(IDCluster, 0); ok {
+			s.offset = offset
+			return nil
+		}
+	}
+
+	// find cluster element
+cluster:
+	for {
+		el, n, err := s.decoder.NextOf(s.segmentEl, offset)
+		if s.segmentEl.DataSize != -1 {
+			offset += int64(n)
+		}
+		if errors.Is(err, ebml.ErrElementOverflow) {
+			// detect element overflow early to pretend the element is smaller
+			if s.segmentEl.DataSize < s.offset+el.DataSize {
+				el.DataSize = s.segmentEl.DataSize - s.offset
 			}
-			if err != nil {
-				return fmt.Errorf("matroska: %w", err)
+		} else if err != nil {
+			return fmt.Errorf("matroska: %w", err)
+		}
+		if err := s.updateFSeek(el); err != nil && !errors.Is(err, errors.ErrUnsupported) {
+			return err
+		}
+		if s.segmentEl.DataSize != -1 {
+			offset += el.DataSize
+		}
+		switch el.ID {
+		default:
+			if err := s.decoder.Skip(el); err != nil {
+				return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
 			}
-			if err := s.updateFSeek(el); err != nil {
-				return err
+		case IDChapters:
+			var chapters Chapters
+			if err := s.decoder.Decode(el, &chapters); err != nil {
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
-			if s.segmentEl.DataSize != -1 {
-				// detect element overflow early to pretend the element is smaller
-				if s.segmentEl.DataSize < s.offset+el.DataSize {
-					el.DataSize = s.segmentEl.DataSize - s.offset
-				}
-				offset += el.DataSize
+		case IDCues:
+			var cues Cues
+			if err := s.decoder.Decode(el, &cues); err != nil {
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
-			switch el.ID {
-			default:
-				if _, err := s.decoder.Seek(el.DataSize, io.SeekCurrent); err != nil {
-					return fmt.Errorf("matroska: could not skip %v: %w", el.ID, err)
-				}
-				continue
-			case IDCluster:
-				if _, err := s.decoder.Seek(int64(-n), io.SeekCurrent); err != nil {
-					return fmt.Errorf("matroska: could not revert read: %w", err)
-				}
-				break cluster // Done here
+		case IDAttachments:
+			var attachments Attachments
+			if err := s.decoder.Decode(el, &attachments); err != nil {
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
 			}
+		case IDTags:
+			var tags Tags
+			if err := s.decoder.Decode(el, &tags); err != nil {
+				return fmt.Errorf("matroska: could not decode %v: %w", el.ID, err)
+			}
+
+		case IDCluster:
+			s.firstCluster = &el
+			break cluster // Done here
 		}
 	}
 	s.offset = offset
@@ -298,6 +339,10 @@ func (s *Scanner) seekTo(seekID schema.ElementID, n int) (int64, bool) {
 	if s.seekHead == nil {
 		return 0, false
 	}
+	ss, ok := s.decoder.AsSeeker()
+	if !ok {
+		return 0, false
+	}
 	i := 0
 	for _, seek := range s.seekHead.Seek {
 		if seek.SeekID == seekID {
@@ -305,7 +350,7 @@ func (s *Scanner) seekTo(seekID schema.ElementID, n int) (int64, bool) {
 				i++
 				continue
 			}
-			s.decoder.Seek(s.segmentStart+int64(seek.SeekPosition), io.SeekStart)
+			ss.Seek(s.segmentStart+int64(seek.SeekPosition), io.SeekStart)
 			return int64(seek.SeekPosition), true
 		}
 	}
@@ -314,7 +359,11 @@ func (s *Scanner) seekTo(seekID schema.ElementID, n int) (int64, bool) {
 
 func (s *Scanner) updateFSeek(el ebml.Element) error {
 	if s.seekHead == nil && el.ID != IDSeekHead && el.ID != ebml.IDVoid && el.ID != ebml.IDCRC32 {
-		pos, err := s.decoder.Seek(0, io.SeekCurrent)
+		ss, ok := s.decoder.AsSeeker()
+		if !ok {
+			return errors.ErrUnsupported
+		}
+		pos, err := ss.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return fmt.Errorf("matroska: could not read position: %w", err)
 		}
