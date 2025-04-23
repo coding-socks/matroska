@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/huh"
 	"github.com/coding-socks/ebml"
+	"github.com/coding-socks/ebml/schema"
 	"github.com/coding-socks/matroska"
 	"github.com/coding-socks/matroska/cmd/mkc/internal/cli"
 	flag "github.com/spf13/pflag"
@@ -155,6 +156,11 @@ func (v printVisitor) Visit(el ebml.Element, offset int64, headerSize int, val a
 		i := val.(time.Duration)
 		d := i * timestampScale
 		v.printer.Printf("%s: %v%s", sch.Name, d, v.suffix.String())
+	case matroska.IDSeekID:
+		def, _ := ebml.Definition(matroska.DocType)
+		i := val.(schema.ElementID)
+		seekSch, _ := def.Get(i)
+		v.printer.Printf("%s: %v %s%s", sch.Name, i, seekSch.Name, v.suffix.String())
 	case matroska.IDBlockDuration, matroska.IDReferenceBlock:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-track-ticks
 		timestampScale := v.s.Info().TimestampScale
