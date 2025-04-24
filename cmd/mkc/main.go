@@ -10,6 +10,8 @@ import (
 	"github.com/coding-socks/matroska/cmd/mkc/internal/list"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 var commands = []*cli.Command{
@@ -21,6 +23,7 @@ func main() {
 	flag.Parse()
 
 	mode := flag.Arg(0)
+	signal.Ignore(syscall.SIGPIPE)
 
 	if mode == "" {
 		options := make([]huh.Option[string], len(commands))
