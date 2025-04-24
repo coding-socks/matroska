@@ -83,6 +83,38 @@ func run(flags *flag.FlagSet) {
 	}
 }
 
+type queueCallbacker struct {
+	el ebml.Element
+	c  listCallbacker
+
+	queue []func(v listCallbacker, ctx context.Context) listCallbacker
+}
+
+func (c queueCallbacker) Found(el ebml.Element, offset int64, headerSize int) ebml.Callbacker {
+	f := func(cc listCallbacker, ctx context.Context) listCallbacker {
+		return cc.found(el, offset, headerSize, ctx)
+	}
+	c.queue = append(c.queue, f)
+	return c
+}
+
+func (c queueCallbacker) Decoded(el ebml.Element, offset int64, headerSize int, val any) ebml.Callbacker {
+	if c.el.ID != el.ID {
+		f := func(cc listCallbacker, ctx context.Context) listCallbacker {
+			return cc.decode(el, offset, headerSize, val, ctx)
+		}
+
+		c.queue = append(c.queue, f)
+		return c
+	}
+	ctx := context.WithValue(context.Background(), el.ID, val)
+
+	for _, f := range c.queue {
+		c.c = f(c.c, ctx)
+	}
+	return c.c
+}
+
 type listCallbacker struct {
 	w io.Writer
 	s *matroska.Scanner
@@ -93,129 +125,93 @@ type listCallbacker struct {
 	showPosition bool
 	showSize     bool
 	showDataSize bool
-
-	queueEnabled bool
-	queue        []func(v listCallbacker, ctx context.Context) listCallbacker
 }
 
-func (v listCallbacker) Found(el ebml.Element, offset int64, headerSize int) ebml.Callbacker {
-	callCtx := context.Background()
+func (c listCallbacker) Found(el ebml.Element, offset int64, headerSize int) ebml.Callbacker {
+	startQueue := false
 
 	switch el.ID {
 	case matroska.IDBlockGroup:
-		v.queueEnabled = true
+		startQueue = true
 	}
 
-	f := func(v listCallbacker, ctx context.Context) listCallbacker {
-		return v.found(el, offset, headerSize, ctx)
+	if startQueue {
+		return queueCallbacker{el: el, c: c}.Found(el, offset, headerSize)
 	}
 
-	if v.queueEnabled {
-		v.queue = append(v.queue, f)
-	} else {
-		for _, ff := range v.queue {
-			v = ff(v, callCtx)
-		}
-		v.queue = nil
-		v = f(v, context.Background())
-	}
-
-	return v
+	return c.found(el, offset, headerSize, context.Background())
 }
 
-func (v listCallbacker) found(el ebml.Element, offset int64, headerSize int, ctx context.Context) listCallbacker {
+func (c listCallbacker) found(el ebml.Element, offset int64, headerSize int, ctx context.Context) listCallbacker {
 	sch := el.Schema
 
-	v.printer.Sub(offset)
-	v.suffix.Reset()
+	c.printer.Sub(offset)
+	c.suffix.Reset()
 
-	if v.showPosition {
-		fmt.Fprintf(&v.suffix, ", at %d", offset)
+	if c.showPosition {
+		fmt.Fprintf(&c.suffix, ", at %d", offset)
 	}
-	if v.showSize {
+	if c.showSize {
 		if el.DataSize == -1 {
-			fmt.Fprint(&v.suffix, ", size unknown")
+			fmt.Fprint(&c.suffix, ", size unknown")
 		} else {
-			fmt.Fprintf(&v.suffix, ", size %d", int64(headerSize)+el.DataSize)
+			fmt.Fprintf(&c.suffix, ", size %d", int64(headerSize)+el.DataSize)
 		}
 	}
-	if v.showDataSize {
+	if c.showDataSize {
 		if el.DataSize == -1 {
-			fmt.Fprint(&v.suffix, ", data size unknown")
+			fmt.Fprint(&c.suffix, ", data size unknown")
 		} else {
-			fmt.Fprintf(&v.suffix, ", data size %d", el.DataSize)
+			fmt.Fprintf(&c.suffix, ", data size %d", el.DataSize)
 		}
 	}
 
 	switch el.ID {
 	default:
 		if sch.Type != ebml.TypeMaster {
-			return v
+			return c
 		}
-		v.printer.Printf("%s%s", sch.Name, v.suffix.String())
+		c.printer.Printf("%s%s", sch.Name, c.suffix.String())
 	}
 
 	if el.DataSize > -1 {
 		absoluteEnd := offset + int64(headerSize) + el.DataSize
-		v.printer.Add(absoluteEnd)
+		c.printer.Add(absoluteEnd)
 	} else {
-		v.printer.Add(-1)
+		c.printer.Add(-1)
 	}
 
-	return v
+	return c
 }
 
-func (v listCallbacker) Decoded(el ebml.Element, offset int64, headerSize int, val any) ebml.Callbacker {
-	callCtx := context.Background()
-
-	switch el.ID {
-	case matroska.IDBlockGroup:
-		v.queueEnabled = false
-
-		callCtx = context.WithValue(callCtx, el.ID, val)
-	}
-
-	f := func(v listCallbacker, ctx context.Context) listCallbacker {
-		return v.decode(el, offset, headerSize, val, ctx)
-	}
-
-	if v.queueEnabled {
-		v.queue = append(v.queue, f)
-	} else {
-		for _, ff := range v.queue {
-			v = ff(v, callCtx)
-		}
-		v.queue = nil
-		v = f(v, callCtx)
-	}
-
-	return v
+func (c listCallbacker) Decoded(el ebml.Element, offset int64, headerSize int, val any) ebml.Callbacker {
+	return c.decode(el, offset, headerSize, val, context.Background())
 }
 
-func (v listCallbacker) decode(el ebml.Element, offset int64, headerSize int, val any, ctx context.Context) listCallbacker {
+func (c listCallbacker) decode(el ebml.Element, offset int64, headerSize int, val any, ctx context.Context) listCallbacker {
 	sch := el.Schema
 	if sch.Type == ebml.TypeMaster {
-		return v
+		return c
 	}
 
-	v.printer.Sub(offset)
-	v.suffix.Reset()
+	c.printer.Sub(offset)
+	c.suffix.Reset()
 
-	if v.showPosition {
-		fmt.Fprintf(&v.suffix, ", at %d", offset)
+	if c.showPosition {
+		fmt.Fprintf(&c.suffix, ", at %d", offset)
 	}
-	if v.showSize {
+	if c.showSize {
 		if el.DataSize == -1 {
-			fmt.Fprint(&v.suffix, ", size unknown")
+			fmt.Fprint(&c.suffix, ", size unknown")
 		} else {
-			fmt.Fprintf(&v.suffix, ", size %d", int64(headerSize)+el.DataSize)
+			fmt.Fprintf(&c.suffix, ", size %d", int64(headerSize)+el.DataSize)
 		}
 	}
-	if v.showDataSize {
+	if c.showDataSize {
 		if el.DataSize == -1 {
-			fmt.Fprint(&v.suffix, ", data size unknown")
+			fmt.Fprint(&c.suffix, ", data size unknown")
 		} else {
-			fmt.Fprintf(&v.suffix, ", data size %d", el.DataSize)
+			fmt.Fprintf(&c.suffix, ", data size %d", el.DataSize)
 		}
 	}
 
@@ -223,47 +219,44 @@ func (v listCallbacker) decode(el ebml.Element, offset int64, headerSize int, va
 	default:
 		switch sch.Type {
 		default:
-			v.printer.Print("unexpected element ", el.ID)
+			c.printer.Print("unexpected element ", el.ID)
 		case ebml.TypeBinary:
-			v.printer.Printf("%s%s", sch.Name, v.suffix.String())
+			c.printer.Printf("%s%s", sch.Name, c.suffix.String())
 		case ebml.TypeString:
-			v.printer.Printf("%s: %s%s", sch.Name, val, v.suffix.String())
+			c.printer.Printf("%s: %s%s", sch.Name, val, c.suffix.String())
 		case ebml.TypeUTF8:
-			v.printer.Printf("%s: %s%s", sch.Name, val, v.suffix.String())
+			c.printer.Printf("%s: %s%s", sch.Name, val, c.suffix.String())
 		case ebml.TypeUinteger:
-			v.printer.Printf("%s: %d%s", sch.Name, val, v.suffix.String())
+			c.printer.Printf("%s: %d%s", sch.Name, val, c.suffix.String())
 		case ebml.TypeInteger:
-			v.printer.Printf("%s: %d%s", sch.Name, val, v.suffix.String())
+			c.printer.Printf("%s: %d%s", sch.Name, val, c.suffix.String())
 		case ebml.TypeFloat:
-			v.printer.Printf("%s: %f%s", sch.Name, val, v.suffix.String())
+			c.printer.Printf("%s: %f%s", sch.Name, val, c.suffix.String())
 		case ebml.TypeDate:
-			v.printer.Printf("%s: %s%s", sch.Name, val, v.suffix.String())
+			c.printer.Printf("%s: %s%s", sch.Name, val, c.suffix.String())
 		}
-
-	case matroska.IDBlockGroup:
-		v.queueEnabled = true
 
 	case matroska.IDDuration:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-segment-ticks
-		timestampScale := v.s.Info().TimestampScale
+		timestampScale := c.s.Info().TimestampScale
 		// Stored as a float for some reason
 		f := val.(float64)
 		d := time.Duration(int64(f * float64(timestampScale)))
-		v.printer.Printf("%s: %v%s", sch.Name, d, v.suffix.String())
+		c.printer.Printf("%s: %v%s", sch.Name, d, c.suffix.String())
 	case matroska.IDTimestamp, matroska.IDCueDuration:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-segment-ticks
-		timestampScale := v.s.Info().TimestampScale
+		timestampScale := c.s.Info().TimestampScale
 		i := val.(time.Duration)
 		d := i * timestampScale
-		v.printer.Printf("%s: %v%s", sch.Name, d, v.suffix.String())
+		c.printer.Printf("%s: %v%s", sch.Name, d, c.suffix.String())
 	case matroska.IDSeekID:
 		def, _ := ebml.Definition(matroska.DocType)
 		i := val.(schema.ElementID)
 		seekSch, _ := def.Get(i)
-		v.printer.Printf("%s: %v %s%s", sch.Name, i, seekSch.Name, v.suffix.String())
+		c.printer.Printf("%s: %v %s%s", sch.Name, i, seekSch.Name, c.suffix.String())
 	case matroska.IDBlockDuration, matroska.IDReferenceBlock:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-track-ticks
-		timestampScale := v.s.Info().TimestampScale
+		timestampScale := c.s.Info().TimestampScale
 		blockGroup := ctx.Value(matroska.IDBlockGroup).(matroska.BlockGroup)
 		block, _ := matroska.ReadBlock(blockGroup.Block, timestampScale)
 
@@ -278,70 +271,65 @@ func (v listCallbacker) decode(el ebml.Element, offset int64, headerSize int, va
 		}
 		// TODO: validate if this would work. I may need the whole BlockGroup.
 		trackTimestampScale := 1.0
-		for _, te := range v.s.Tracks().TrackEntry {
+		for _, te := range c.s.Tracks().TrackEntry {
 			if te.TrackNumber == block.TrackNumber() {
 				trackTimestampScale = te.TrackTimestampScale
 				break
 			}
 		}
 		d := time.Duration(float64(i) * float64(timestampScale) * trackTimestampScale)
-		v.printer.Printf("%s: %s%s", sch.Name, d, v.suffix.String())
+		c.printer.Printf("%s: %s%s", sch.Name, d, c.suffix.String())
 	case matroska.IDBlock:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-block-structure
-		timestampScale := v.s.Info().TimestampScale
-		blockGroup := ctx.Value(matroska.IDBlockGroup).(matroska.BlockGroup)
+		timestampScale := c.s.Info().TimestampScale
+		cluster := c.s.Cluster()
+		codecDelay := time.Duration(0)
 
 		b := val.([]byte)
-		block, _ := matroska.ReadBlock(b, timestampScale)
+		block, _ := matroska.ReadBlock(b, cluster.Timestamp)
 		frames := block.Frames()
 
-		blockDuration := time.Second
-		if blockGroup.BlockDuration != nil {
-			blockDuration = time.Duration(*blockGroup.BlockDuration)
-		} else {
-			for _, te := range v.s.Tracks().TrackEntry {
-				if te.TrackNumber == block.TrackNumber() {
-					if te.DefaultDuration != nil {
-						blockDuration = time.Duration(*te.DefaultDuration)
-					}
-					break
-				}
+		for _, te := range c.s.Tracks().TrackEntry {
+			if te.TrackNumber == block.TrackNumber() {
+				timestampScale = time.Duration(te.TrackTimestampScale * float64(timestampScale))
+				codecDelay = time.Duration(te.CodecDelay)
+				break
 			}
 		}
 
-		v.printer.Printf("%s: track number %d, %d frame(s), timestamp %v%s", sch.Name,
-			block.TrackNumber(), len(frames), blockDuration*timestampScale, v.suffix.String())
-		v.printer.Add(1)
+		c.printer.Printf("%s: track number %d, %d frame(s), timestamp %v%s", sch.Name,
+			block.TrackNumber(), len(frames), block.Timestamp(timestampScale)-codecDelay, c.suffix.String())
+		c.printer.Add(1)
 		frameOffset := offset + int64(headerSize) + el.DataSize
 		for _, f := range frames {
 			frameOffset -= int64(len(f))
 		}
 		for _, f := range frames {
-			v.printer.Printf("Frame at %d size %d", frameOffset, len(f)) // TODO: incorrect at the moment
+			c.printer.Printf("Frame at %d size %d", frameOffset, len(f)) // TODO: incorrect at the moment
 			frameOffset += int64(len(f))
 		}
-		v.printer.Sub(1)
+		c.printer.Sub(1)
 	case matroska.IDSimpleBlock:
 		// https://www.ietf.org/archive/id/draft-ietf-cellar-matroska-21.html#name-simpleblock-structure
-		timestampScale := v.s.Info().TimestampScale
+		timestampScale := c.s.Info().TimestampScale
 		b := val.([]byte)
 		block, _ := matroska.ReadSimpleBlock(b, timestampScale)
 		frames := block.Frames()
-		v.printer.Printf("%s: track number %d, %d frame(s), timestamp %v%s", sch.Name,
-			block.TrackNumber(), len(frames), 0*timestampScale, v.suffix.String())
-		v.printer.Add(1)
+		c.printer.Printf("%s: track number %d, %d frame(s), timestamp %v%s", sch.Name,
+			block.TrackNumber(), len(frames), 0*timestampScale, c.suffix.String())
+		c.printer.Add(1)
 		frameOffset := offset + int64(headerSize) + el.DataSize
 		for _, f := range frames {
 			frameOffset -= int64(len(f))
 		}
 		for _, f := range frames {
-			v.printer.Printf("Frame at %d size %d", frameOffset, len(f)) // TODO: incorrect at the moment
+			c.printer.Printf("Frame at %d size %d", frameOffset, len(f)) // TODO: incorrect at the moment
 			frameOffset += int64(len(f))
 		}
-		v.printer.Sub(1)
+		c.printer.Sub(1)
 	}
 
-	return v
+	return c
 }
 
 type indentedPrinter struct {
