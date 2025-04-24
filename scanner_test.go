@@ -92,7 +92,7 @@ func TestScanner(t *testing.T) {
 			defer f.Close()
 			s := NewScanner(f)
 			if *flagDiagnosis {
-				s.Decoder().SetVisitor(diagnosisVisitor{t: t})
+				s.Decoder().SetCallback(diagnosisCallbacker{t: t})
 			}
 			var cluster []Cluster
 			for s.Next() {

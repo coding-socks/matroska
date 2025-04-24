@@ -26,9 +26,14 @@ func Test_init(t *testing.T) {
 	}
 }
 
-type diagnosisVisitor struct{ t *testing.T }
+type diagnosisCallbacker struct{ t *testing.T }
 
-func (v diagnosisVisitor) Visit(el ebml.Element, offset int64, headerSize int, val any) (w ebml.Visitor) {
+func (v diagnosisCallbacker) Found(el ebml.Element, offset int64, headerSize int) ebml.Callbacker {
+	v.t.Logf("%s %s at %d, size %d+%d", el.Schema.Name, el.ID, offset, headerSize, el.DataSize)
+	return v
+}
+
+func (v diagnosisCallbacker) Decoded(el ebml.Element, offset int64, headerSize int, val any) ebml.Callbacker {
 	v.t.Logf("%s %s at %d, size %d+%d", el.Schema.Name, el.ID, offset, headerSize, el.DataSize)
 	return v
 }
@@ -304,7 +309,7 @@ func TestDecode(t *testing.T) {
 			defer f.Close()
 			d := ebml.NewDecoder(f)
 			if *flagDiagnosis {
-				d.SetVisitor(diagnosisVisitor{t: t})
+				d.SetCallback(diagnosisCallbacker{t: t})
 			}
 			header, err := d.DecodeHeader()
 			if err != nil {
