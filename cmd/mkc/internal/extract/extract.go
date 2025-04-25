@@ -104,8 +104,20 @@ func run(flags *flag.FlagSet) {
 		}
 	}
 
-	for _, trackIndex := range args.Tracks {
-		te := tracks.TrackEntry[trackIndex-1]
+	for _, trackNum := range args.Tracks {
+		found := false
+		var te matroska.TrackEntry
+		for i := range tracks.TrackEntry {
+			if tracks.TrackEntry[i].TrackNumber == trackNum {
+				te = tracks.TrackEntry[i]
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Fprintf(os.Stderr, "Could not find track %d\n", trackNum)
+			continue
+		}
 
 		err = spinner.New().
 			Action(func() {
