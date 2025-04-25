@@ -26,8 +26,6 @@ var (
 	errStaleWriter         = errors.New("riff: stale writer")
 )
 
-var u32 = binary.LittleEndian.Uint32
-
 // FourCC is a four character code.
 type FourCC [4]byte
 
@@ -46,7 +44,7 @@ func NewReader(r io.Reader) (FourCC, *Reader, error) {
 	if buf[0] != 'R' || buf[1] != 'I' || buf[2] != 'F' || buf[3] != 'F' {
 		return FourCC{}, nil, ErrMissingRIFFMagicNumber
 	}
-	return NewListReader(u32(buf[4:]), r)
+	return NewListReader(binary.LittleEndian.Uint32(buf[4:]), r)
 }
 
 // NewListReader returns a LIST list reader as a *Reader.
@@ -117,7 +115,7 @@ func (r *Reader) Next() (FourCC, uint32, *ChunkReader, error) {
 		return FourCC{}, 0, nil, err
 	}
 	id := FourCC{r.buf[0], r.buf[1], r.buf[2], r.buf[3]}
-	l := u32(r.buf[4:])
+	l := binary.LittleEndian.Uint32(r.buf[4:])
 	if l > r.len {
 		r.err = errListSubchunkTooLong
 		return FourCC{}, 0, nil, r.err
