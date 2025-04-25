@@ -34,5 +34,14 @@ ogg
 				log.Fatal(err)
 			}
 		}
+	case "riff":
+		files := args[1:]
+		for _, f := range files {
+			log.Println("=== " + filepath.Base(f))
+			err := analyzeRIFFPackages(f)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 }
