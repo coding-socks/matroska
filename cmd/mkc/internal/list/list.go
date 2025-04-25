@@ -57,6 +57,7 @@ func run(flags *flag.FlagSet) {
 		fmt.Fprintf(os.Stderr, "Could not open input file: %s\n", args.Input)
 		os.Exit(1)
 	}
+	defer f.Close()
 
 	r := io.MultiReader(f) // remove seeking capability
 	s := matroska.NewScanner(r)

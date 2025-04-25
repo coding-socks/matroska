@@ -12,6 +12,7 @@ func analyzeOggPackages(filename string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	d := ogg.NewDecoder(f)
 	streams, err := d.DecodeStreams()
 	if err != nil {
