@@ -16,12 +16,6 @@ func analyzeRIFFPackages(filename string) error {
 	}
 	defer f.Close()
 
-	ff, err := os.Create(filename + ".copy")
-	if err != nil {
-		return err
-	}
-	defer ff.Close()
-
 	fileType, r, err := riff.NewReader(f)
 	if err != nil {
 		return fmt.Errorf("unable to decode RIFF header: %w", err)
