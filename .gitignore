@@ -1,6 +1,8 @@
 .idea/
 *.iml
 
+dist/
+
 *.mkv
 *.mk3d
 *.mka
