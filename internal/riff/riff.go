@@ -29,8 +29,11 @@ var (
 // FourCC is a four character code.
 type FourCC [4]byte
 
-// LIST is the "LIST" FourCC.
-var LIST = FourCC{'L', 'I', 'S', 'T'}
+var (
+	// LIST is the "LIST" FourCC.
+	LIST = FourCC{'L', 'I', 'S', 'T'}
+	JUNK = FourCC{'J', 'U', 'N', 'K'}
+)
 
 // NewReader returns the initial RIFF list reader as a *Reader.
 func NewReader(r io.Reader) (FourCC, *Reader, error) {
@@ -134,24 +137,40 @@ func NewWriter(w io.WriterAt, fileType FourCC) (data *Writer, err error) {
 	if err != nil {
 		return ww, err
 	}
-	ww.root = w
+	ww.onClose = func() error {
+		var sizebuf [4]byte
+		l := uint32(ww.len)
+		binary.LittleEndian.PutUint32(sizebuf[:], l)
+		if _, err := w.WriteAt(sizebuf[:], 4); err != nil {
+			return err
+		}
+		if l&1 == 1 {
+			n, err := ww.w.WriteAt([]byte{0}, ww.len)
+			ww.len += int64(n)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 	return ww, err
 }
 
 func NewListWriter(chunkData io.WriterAt, listType FourCC) (listw *Writer, err error) {
-	w := &Writer{w: chunkData, len: 4}
+	w := &Writer{w: chunkData, len: 4, max: math.MaxUint32}
 	_, w.err = chunkData.WriteAt(listType[:], 0)
 	return w, w.err
 }
 
 type Writer struct {
-	w    io.WriterAt
-	root io.WriterAt
-	err  error
+	w   io.WriterAt
+	err error
 
-	chunk  *ChunkWriter
-	closed bool
-	len    int64
+	chunk   *ChunkWriter
+	onClose func() error
+	closed  bool
+	len     int64
+	max     uint32
 }
 
 type ChunkWriter struct {
@@ -178,7 +197,7 @@ func (w *ChunkWriter) WriteAt(p []byte, off int64) (n int, err error) {
 	if off < 0 {
 		return 0, errInvalidOffset
 	}
-	if (w.base + w.len + int64(len(p))) > math.MaxUint32 {
+	if (w.base + w.len + int64(len(p))) > int64(w.listw.max) {
 		return 0, ErrDataTooLong
 	}
 
@@ -207,6 +226,49 @@ func (w *ChunkWriter) close() error {
 		}
 	}
 	return nil
+}
+
+func (w *Writer) Placeholder(l uint32) (*Writer, error) {
+	if w.err != nil {
+		return nil, w.err
+	}
+	if w.chunk != nil {
+		if w.err = w.chunk.close(); w.err != nil {
+			return nil, w.err
+		}
+		w.chunk = nil
+	}
+	start := w.len
+	{
+		ww, err := w.Next(JUNK)
+		if err != nil {
+			w.err = err
+			return nil, err
+		}
+		b := make([]byte, 8192)
+		for remain := l; remain > 0; remain -= 8192 {
+			_, w.err = ww.Write(b[:min(remain, 8192)])
+			if w.err != nil {
+				return nil, w.err
+			}
+			if remain < 8192 {
+				break
+			}
+		}
+	}
+	ww := &Writer{w: io.NewOffsetWriter(w.w, start), max: l}
+	ww.onClose = func() error {
+		if _, err := ww.w.WriteAt(JUNK[:], ww.len); err != nil {
+			return err
+		}
+		var buf [4]byte
+		binary.LittleEndian.PutUint32(buf[:], l-uint32(ww.len))
+		if _, err := ww.w.WriteAt(buf[:], ww.len+4); err != nil {
+			return err
+		}
+		return nil
+	}
+	return ww, w.err
 }
 
 var sizePlaceholder = []byte{0, 0, 0, 0}
@@ -258,23 +320,9 @@ func (w *Writer) Close() error {
 		w.chunk = nil
 	}
 
-	if w.root != nil {
-		// TODO: think of a better way of writing the size of the root element,
-		//   but not write it for sublists because that occurs in ChunkWriter.
-		var sizebuf [4]byte
-		l := uint32(w.len)
-		binary.LittleEndian.PutUint32(sizebuf[:], l)
-		if _, w.err = w.root.WriteAt(sizebuf[:], 4); w.err != nil {
-			return w.err
-		}
-		if l&1 == 1 {
-			n, err := w.w.WriteAt([]byte{0}, w.len)
-			w.len += int64(n)
-			if err != nil {
-				return err
-			}
-		}
+	if w.onClose != nil {
+		w.err = w.onClose()
 	}
 	w.closed = true
-	return nil
+	return w.err
 }

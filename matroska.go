@@ -13,6 +13,7 @@ import (
 	"github.com/coding-socks/ebml/ebmltext"
 	"github.com/coding-socks/ebml/schema"
 	"io"
+	"os"
 	"time"
 )
 
@@ -181,7 +182,7 @@ func (b SimpleBlock) Frames() [][]byte {
 	return Frames(b.flags&SimpleBlockFlagLacing, b.data)
 }
 
-func ExtractTract(w io.Writer, s *Scanner, t TrackEntry) error {
+func ExtractTract(w *os.File, s *Scanner, t TrackEntry) error {
 	prefix, _, _ := CodecID(t.CodecID)
 	switch prefix {
 	case CodecTypeVideo:
